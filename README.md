@@ -1,8 +1,8 @@
 api base url = http://localhost:8000/penguins
 
-endpoints: 
-POST   /penguins/register
-GET    /penguins/users/{username}
-POST   /penguins/places
-GET    /penguins/places
+endpoints: <br>
+POST   /penguins/register <br>
+GET    /penguins/users/{username} <br>
+POST   /penguins/places <br>
+GET    /penguins/places <br>
 GET    /penguins/places/{place_id}
