@@ -1,8 +1,10 @@
 from datetime import datetime, UTC
 from typing import List, Optional
+from uuid import uuid4
 
 from beanie import Document
 from pydantic import BaseModel, Field
+from pymongo import IndexModel
 
 
 class Coordinates(BaseModel):
@@ -11,6 +13,7 @@ class Coordinates(BaseModel):
 
 
 class CommunityNote(BaseModel):
+    note_id: str = Field(default_factory=lambda: str(uuid4()))
     user_id: str
     wifi_available: Optional[bool] = None
     outlets_available: Optional[bool] = None
@@ -40,3 +43,6 @@ class Location(Document):
 
     class Settings:
         name = "locations"
+        indexes = [
+            IndexModel("type_of_place"),
+        ]

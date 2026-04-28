@@ -2,6 +2,8 @@ from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel
 
+from app.models.gathering import GatheringStatus, GatheringVisibility
+
 
 class GatheringCreateRequest(BaseModel):
     place_id: str
@@ -9,7 +11,7 @@ class GatheringCreateRequest(BaseModel):
     datetime_end: Optional[datetime] = None
     title: str
     description: Optional[str] = None
-    visibility: str = "public"
+    visibility: GatheringVisibility = GatheringVisibility.PUBLIC
     image_url: Optional[str] = None
 
 
@@ -18,6 +20,6 @@ class GatheringUpdateRequest(BaseModel):
     datetime_end: Optional[datetime] = None
     title: Optional[str] = None
     description: Optional[str] = None
-    visibility: Optional[str] = None
-    status: Optional[str] = None
+    visibility: Optional[GatheringVisibility] = None
+    status: Optional[GatheringStatus] = None
     image_url: Optional[str] = None

@@ -1,26 +1,28 @@
 from typing import Optional, List
 from pydantic import BaseModel
 
-from app.models.user import UserPreferences, OnlineStatus, UserRole, Permission
+from app.models.user import UserPreferences, OnlineStatus, UserRole
 
 
-class UserPublic(BaseModel):
+class UserSummary(BaseModel):
     id: str
     username: str
-    email: str
-    role: str
     first_name: str
     last_name: str
     profile_image_url: Optional[str] = None
-    favorite_places: List[str]
-    friend_ids: List[str]
-    preferences: UserPreferences
     online_status: OnlineStatus
 
 
+class UserPrivate(UserSummary):
+    email: str
+    role: str
+    favorite_places: List[str]
+    friend_ids: List[str]
+    preferences: UserPreferences
+
+
 class UserAccessUpdate(BaseModel):
-    role: Optional[UserRole] = None
-    permissions: Optional[List[Permission]] = None
+    role: UserRole
     
 
 class UserUpdateRequest(BaseModel):

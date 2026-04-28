@@ -25,18 +25,11 @@ class UserRole(str, Enum):
     ADMIN = "admin"
 
 
-class Permission(str, Enum):
-    VIEW_PENGUINS = "view_penguins"
-    EDIT_PENGUINS = "edit_penguins"
-    MANAGE_USERS = "manage_users"
-
-
 class User(Document):
     username: Indexed(str, unique=True)
     email: Indexed(EmailStr, unique=True)
     hashed_password: str
     role: UserRole = UserRole.BASIC
-    permissions: List[Permission] = Field(default_factory=list)
     first_name: str
     last_name: str
     profile_image_url: Optional[str] = None

@@ -1,6 +1,7 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
 
+from app.core.bootstrap import ensure_initial_admin
 from app.core.config import settings
 from app.models.user import User
 from app.models.location import Location
@@ -22,3 +23,4 @@ async def init_db():
             Friendship,
         ],
     )
+    await ensure_initial_admin()
