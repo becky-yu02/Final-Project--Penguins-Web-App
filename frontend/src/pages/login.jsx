@@ -1,11 +1,46 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+
+const API = 'http://127.0.0.1:8000';
 
 export default function Login() {
+  const { login } = useAuth();
+  const navigate = useNavigate();
   const [tab, setTab] = useState('login');
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [registerForm, setRegisterForm] = useState({
     first_name: '', last_name: '', username: '', email: '', password: '',
   });
+  const [error, setError] = useState('');
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    setError('');
+    const body = new URLSearchParams(loginForm);
+    const res = await fetch(`${API}/penguins/auth/login`, { method: 'POST', body });
+    if (!res.ok) { setError('Invalid username or password.'); return; }
+    const data = await res.json();
+    login(data.access_token);
+    navigate('/home');
+  }
+
+  async function handleRegister(e) {
+    e.preventDefault();
+    setError('');
+    const res = await fetch(`${API}/penguins/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(registerForm),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.detail ?? 'Registration failed.');
+      return;
+    }
+    setTab('login');
+    setError('Account created — please log in.');
+  }
 
   return (
     <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light">
@@ -32,8 +67,14 @@ export default function Login() {
             </li>
           </ul>
 
+          {error && (
+            <div className={`alert ${error.startsWith('Account') ? 'alert-success' : 'alert-danger'} py-2`}>
+              {error}
+            </div>
+          )}
+
           {tab === 'login' ? (
-            <form onSubmit={e => e.preventDefault()}>
+            <form onSubmit={handleLogin}>
               <div className="mb-3">
                 <label className="form-label">Username</label>
                 <input
@@ -55,7 +96,7 @@ export default function Login() {
               <button type="submit" className="btn btn-primary w-100">Login</button>
             </form>
           ) : (
-            <form onSubmit={e => e.preventDefault()}>
+            <form onSubmit={handleRegister}>
               <div className="row mb-3">
                 <div className="col">
                   <label className="form-label">First Name</label>

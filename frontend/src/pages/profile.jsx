@@ -100,7 +100,10 @@ export default function Profile() {
               <div className="row row-cols-1 row-cols-md-3 g-3">
                 {userGatherings.map(g => (
                   <div className="col" key={g.id}>
-                    <GatheringCard gathering={g} />
+                    <GatheringCard
+                    gathering={g}
+                    placeSummary={mockPlaces.find(p => p.id === g.place_id)?.community_summary}
+                  />
                   </div>
                 ))}
               </div>

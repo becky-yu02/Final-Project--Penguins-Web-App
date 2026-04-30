@@ -1,30 +1,69 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
-import mockUsers from '../mock/users.json';
+import { useAuth } from '../context/AuthContext';
 
+const API = 'http://127.0.0.1:8000';
 const PLACE_TYPES = ['academic', 'cafe', 'library', 'student union', 'restaurant', 'park', 'other'];
 
 export default function Settings() {
-  const currentUser = mockUsers[0];
+  const { token } = useAuth();
 
-  const [account, setAccount] = useState({
-    first_name: currentUser.first_name,
-    last_name: currentUser.last_name,
-    profile_image_url: currentUser.profile_image_url || '',
-  });
-
+  const [account, setAccount] = useState({ first_name: '', last_name: '', profile_image_url: '' });
   const [preferences, setPreferences] = useState({
-    wifi_required: false,
-    outlets_required: false,
-    parking_required: false,
-    max_distance_miles: '',
-    preferred_types: [],
+    wifi_required: false, outlets_required: false, parking_required: false,
+    max_distance_miles: '', preferred_types: [],
   });
+  const [status, setStatus] = useState({ is_online: false, broadcasting: false });
+  const [saveStatus, setSaveStatus] = useState('');
 
-  const [status, setStatus] = useState({
-    is_online: currentUser.online_status?.is_online ?? false,
-    broadcasting: currentUser.online_status?.broadcasting ?? false,
-  });
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API}/penguins/users/me`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(user => {
+        setAccount({
+          first_name: user.first_name ?? '',
+          last_name: user.last_name ?? '',
+          profile_image_url: user.profile_image_url ?? '',
+        });
+        if (user.preferences) {
+          setPreferences({
+            wifi_required: user.preferences.wifi_required ?? false,
+            outlets_required: user.preferences.outlets_required ?? false,
+            parking_required: user.preferences.parking_required ?? false,
+            max_distance_miles: user.preferences.max_distance_miles ?? '',
+            preferred_types: user.preferences.preferred_types ?? [],
+          });
+        }
+        if (user.online_status) {
+          setStatus({
+            is_online: user.online_status.is_online ?? false,
+            broadcasting: user.online_status.broadcasting ?? false,
+          });
+        }
+      })
+      .catch(() => {});
+  }, [token]);
+
+  async function handleSave() {
+    setSaveStatus('saving');
+    const body = {
+      ...account,
+      profile_image_url: account.profile_image_url || null,
+      preferences: {
+        ...preferences,
+        max_distance_miles: preferences.max_distance_miles ? parseFloat(preferences.max_distance_miles) : null,
+      },
+      online_status: status,
+    };
+    const res = await fetch(`${API}/penguins/users/me`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    setSaveStatus(res.ok ? 'saved' : 'error');
+    setTimeout(() => setSaveStatus(''), 3000);
+  }
 
   const toggleType = (type) => {
     setPreferences(prev => ({
@@ -119,8 +158,8 @@ export default function Settings() {
               <input
                 type="number"
                 className="form-control"
-                min="0"
-                step="0.5"
+                min="5"
+                step="1"
                 value={preferences.max_distance_miles}
                 onChange={e => setPreferences({ ...preferences, max_distance_miles: e.target.value })}
               />
@@ -172,8 +211,11 @@ export default function Settings() {
           </div>
         </div>
 
-        <button type="button" className="btn btn-primary w-100">
-          Save Changes
+        {saveStatus === 'saved' && <div className="alert alert-success py-2 mb-3">Changes saved.</div>}
+        {saveStatus === 'error' && <div className="alert alert-danger py-2 mb-3">Failed to save. Please try again.</div>}
+
+        <button type="button" className="btn btn-primary w-100" onClick={handleSave} disabled={saveStatus === 'saving'}>
+          {saveStatus === 'saving' ? 'Saving…' : 'Save Changes'}
         </button>
       </div>
     </>

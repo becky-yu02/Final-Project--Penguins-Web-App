@@ -58,7 +58,11 @@ export default function Home() {
         onClick={() => setSelectedPlaceId(g.place_id === selectedPlaceId ? null : g.place_id)}
         style={{ cursor: 'pointer' }}
       >
-        <GatheringCard gathering={g} highlighted={g.place_id === selectedPlaceId} />
+        <GatheringCard
+          gathering={g}
+          placeSummary={mockPlaces.find(p => p.id === g.place_id)?.community_summary}
+          highlighted={g.place_id === selectedPlaceId}
+        />
       </div>
     ));
   }

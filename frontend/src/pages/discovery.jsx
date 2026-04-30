@@ -3,14 +3,76 @@ import Navbar from '../components/Navbar';
 import PlaceCard from '../components/PlaceCard';
 import MapView from '../components/MapView';
 import mockPlaces from '../mock/places.json';
+import { useAuth } from '../context/AuthContext';
+
+const API = 'http://127.0.0.1:8000';
+const PLACE_TYPES = [...new Set(mockPlaces.map(p => p.type_of_place))];
+
+function hasNoPreferences(prefs) {
+  if (!prefs) return true;
+  return (
+    !prefs.max_distance_miles &&
+    !prefs.wifi_required &&
+    !prefs.outlets_required &&
+    !prefs.parking_required &&
+    (!prefs.preferred_types || prefs.preferred_types.length === 0)
+  );
+}
 
 export default function Discovery() {
+  const { token } = useAuth();
   const [search, setSearch] = useState('');
   const [selectedType, setSelectedType] = useState('');
   const [selectedPlaceId, setSelectedPlaceId] = useState(null);
+  const [showPrefsModal, setShowPrefsModal] = useState(false);
+  const [prefs, setPrefs] = useState({
+    preferred_types: [],
+    max_distance_miles: '',
+    wifi_required: false,
+    outlets_required: false,
+    parking_required: false,
+  });
   const cardRefs = useRef({});
 
-  const types = [...new Set(mockPlaces.map(p => p.type_of_place))];
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API}/penguins/users/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(user => {
+        if (hasNoPreferences(user.preferences)) {
+          setShowPrefsModal(true);
+        }
+      })
+      .catch(() => { });
+  }, [token]);
+
+  async function savePrefs() {
+    const body = {
+      preferences: {
+        ...prefs,
+        max_distance_miles: prefs.max_distance_miles ? parseFloat(prefs.max_distance_miles) : null,
+      },
+    };
+    await fetch(`${API}/penguins/users/me`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    setShowPrefsModal(false);
+  }
+
+  function toggleType(type) {
+    setPrefs(p => ({
+      ...p,
+      preferred_types: p.preferred_types.includes(type)
+        ? p.preferred_types.filter(t => t !== type)
+        : [...p.preferred_types, type],
+    }));
+  }
+
+  const types = PLACE_TYPES;
 
   const filtered = mockPlaces.filter(p => {
     const matchSearch =
@@ -100,6 +162,77 @@ export default function Discovery() {
           />
         </div>
       </div>
+
+      {/* Modal Popup if user hasn't set preferences */}
+      {showPrefsModal && (
+        <>
+          <div className="modal-backdrop fade show" />
+          <div className="modal fade show d-block" tabIndex="-1">
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">Set Your Location Preferences</h5>
+                </div>
+                <div className="modal-body">
+                  <p className="text-muted small mb-3">Help us show you the most relevant places.</p>
+
+                  <div className="mb-3">
+                    <label className="form-label fw-semibold">Preferred place types</label>
+                    <div className="d-flex gap-2 flex-wrap">
+                      {PLACE_TYPES.map(type => (
+                        <button
+                          key={type}
+                          type="button"
+                          className={`btn btn-sm text-capitalize ${prefs.preferred_types.includes(type) ? 'btn-dark' : 'btn-outline-secondary'}`}
+                          onClick={() => toggleType(type)}
+                        >
+                          {type}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mb-3">
+                    <label className="form-label fw-semibold">Max distance (miles)</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      placeholder="e.g. 10"
+                      min="5"
+                      value={prefs.max_distance_miles}
+                      onChange={e => setPrefs(p => ({ ...p, max_distance_miles: e.target.value }))}
+                    />
+                  </div>
+
+                  <div className="mb-1">
+                    <label className="form-label fw-semibold">Amenities</label>
+                  </div>
+                  {[['wifi_required', 'Wi-Fi'], ['outlets_required', 'Outlets'], ['parking_required', 'Parking']].map(([key, label]) => (
+                    <div className="form-check mb-2" key={key}>
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        id={key}
+                        checked={prefs[key]}
+                        onChange={e => setPrefs(p => ({ ...p, [key]: e.target.checked }))}
+                      />
+                      <label className="form-check-label" htmlFor={key}>{label} required</label>
+                    </div>
+                  ))}
+                </div>
+                <div className="modal-footer">
+                  <button className="btn btn-outline-secondary" onClick={() => setShowPrefsModal(false)}>
+                    Skip
+                  </button>
+                  <button className="btn btn-primary" onClick={savePrefs}>
+                    Save Preferences
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
