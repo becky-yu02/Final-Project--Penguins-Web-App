@@ -1,0 +1,72 @@
+[
+  {
+    "id": "place_001",
+    "name": "Macbride Hall",
+    "address": "17 N Clinton St, Iowa City, IA 52240",
+    "type_of_place": "academic",
+    "coordinates": { "lat": 41.6611, "lng": -91.5355 },
+    "community_summary": {
+      "wifi_available": true,
+      "outlets_available": true,
+      "parking_available": false,
+      "overall_feel": "studious",
+      "overall_rating": 3.8
+    }
+  },
+  {
+    "id": "place_002",
+    "name": "The Java House",
+    "address": "211 Iowa Ave, Iowa City, IA 52240",
+    "type_of_place": "cafe",
+    "coordinates": { "lat": 41.6598, "lng": -91.532 },
+    "community_summary": {
+      "wifi_available": true,
+      "outlets_available": true,
+      "parking_available": true,
+      "overall_feel": "cozy",
+      "overall_rating": 4.5
+    }
+  },
+  {
+    "id": "place_003",
+    "name": "Main Library",
+    "address": "125 W Washington St, Iowa City, IA 52242",
+    "type_of_place": "library",
+    "coordinates": { "lat": 41.6616, "lng": -91.5354 },
+    "community_summary": {
+      "wifi_available": true,
+      "outlets_available": true,
+      "parking_available": false,
+      "overall_feel": "quiet",
+      "overall_rating": 4.2
+    }
+  },
+  {
+    "id": "place_004",
+    "name": "IMU",
+    "address": "125 N Madison St, Iowa City, IA 52242",
+    "type_of_place": "student union",
+    "coordinates": { "lat": 41.6609, "lng": -91.5341 },
+    "community_summary": {
+      "wifi_available": true,
+      "outlets_available": true,
+      "parking_available": true,
+      "overall_feel": "social",
+      "overall_rating": 4.0
+    }
+  },
+  {
+    "id": "place_005",
+    "name": "Prairie Lights Books",
+    "address": "15 S Dubuque St, Iowa City, IA 52240",
+    "type_of_place": "cafe",
+    "coordinates": { "lat": 41.6601, "lng": -91.5329 },
+    "community_summary": {
+      "wifi_available": true,
+      "outlets_available": false,
+      "parking_available": false,
+      "overall_feel": "cozy",
+      "overall_rating": 4.7
+    }
+  }
+]

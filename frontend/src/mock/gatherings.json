@@ -1,0 +1,58 @@
+[
+  {
+    "id": "gathering_001",
+    "place_id": "place_001",
+    "place_name": "Macbride Hall",
+    "title": "CS Study Group",
+    "description": "Studying for the algorithms final. All are welcome!",
+    "visibility": "PUBLIC",
+    "status": "ACTIVE",
+    "datetime_start": "2026-04-29T13:00:00",
+    "datetime_end": "2026-04-29T17:00:00",
+    "image_url": null,
+    "host_user_id": "user_002",
+    "participant_count": 5
+  },
+  {
+    "id": "gathering_002",
+    "place_id": "place_002",
+    "place_name": "The Java House",
+    "title": "Coffee & Code",
+    "description": "Working on the web app project over coffee. Come hang.",
+    "visibility": "PUBLIC",
+    "status": "ACTIVE",
+    "datetime_start": "2026-04-29T14:00:00",
+    "datetime_end": null,
+    "image_url": null,
+    "host_user_id": "user_003",
+    "participant_count": 3
+  },
+  {
+    "id": "gathering_003",
+    "place_id": "place_003",
+    "place_name": "Main Library",
+    "title": "Finals Prep Session",
+    "description": "Quiet study group. Bringing snacks.",
+    "visibility": "PUBLIC",
+    "status": "SCHEDULED",
+    "datetime_start": "2026-04-30T10:00:00",
+    "datetime_end": "2026-04-30T14:00:00",
+    "image_url": null,
+    "host_user_id": "user_001",
+    "participant_count": 8
+  },
+  {
+    "id": "gathering_004",
+    "place_id": "place_004",
+    "place_name": "IMU",
+    "title": "Group Project Meeting",
+    "description": "Finishing up the final project presentation.",
+    "visibility": "FRIENDS",
+    "status": "SCHEDULED",
+    "datetime_start": "2026-05-01T15:00:00",
+    "datetime_end": "2026-05-01T17:00:00",
+    "image_url": null,
+    "host_user_id": "user_001",
+    "participant_count": 4
+  }
+]

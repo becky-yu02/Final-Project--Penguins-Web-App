@@ -1,0 +1,51 @@
+[
+  {
+    "id": "user_001",
+    "username": "b3rrybunny",
+    "first_name": "Bailey",
+    "last_name": "O",
+    "profile_image_url": null,
+    "favorite_places": ["place_001", "place_002", "place_003"],
+    "online_status": {
+      "is_online": true,
+      "broadcasting": false,
+      "current_gathering_id": null
+    }
+  },
+  {
+    "id": "user_002",
+    "username": "hawkeyefan99",
+    "first_name": "Jordan",
+    "last_name": "K",
+    "profile_image_url": null,
+    "online_status": {
+      "is_online": true,
+      "broadcasting": true,
+      "current_gathering_id": "gathering_001"
+    }
+  },
+  {
+    "id": "user_003",
+    "username": "iowacity_dev",
+    "first_name": "Sam",
+    "last_name": "T",
+    "profile_image_url": null,
+    "online_status": {
+      "is_online": false,
+      "broadcasting": false,
+      "current_gathering_id": null
+    }
+  },
+  {
+    "id": "user_004",
+    "username": "riverside_reader",
+    "first_name": "Morgan",
+    "last_name": "W",
+    "profile_image_url": null,
+    "online_status": {
+      "is_online": true,
+      "broadcasting": false,
+      "current_gathering_id": null
+    }
+  }
+]

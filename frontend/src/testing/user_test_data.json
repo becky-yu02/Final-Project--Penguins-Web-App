@@ -1,0 +1,20 @@
+{
+    "b3rrybunny": {
+        "preferences": {
+            "vibe": [
+                "quiet",
+                "open",
+                "bright"
+            ],
+            "food": false,
+            "restrooms": true,
+            "parking": true,
+            "wifi": true,
+            "seating": [
+                "tables",
+                "couches",
+                "chairs only"
+            ]
+        }
+    }
+}
