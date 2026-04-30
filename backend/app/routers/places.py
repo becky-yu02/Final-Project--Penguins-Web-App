@@ -61,6 +61,9 @@ def apply_note_updates(note: CommunityNote, payload: NoteUpdate) -> list[str]:
     if "parking_available" in update_data:
         note.parking_available = payload.parking_available
         updated_fields.append("parking_available")
+    if "food_available" in update_data:
+        note.food_available = payload.food_available
+        updated_fields.append("food_available")
     if "comment" in update_data:
         note.comment = payload.comment
         updated_fields.append("comment")

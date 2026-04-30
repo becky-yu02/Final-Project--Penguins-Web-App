@@ -18,6 +18,7 @@ class CommunityNote(BaseModel):
     wifi_available: Optional[bool] = None
     outlets_available: Optional[bool] = None
     parking_available: Optional[bool] = None
+    food_available: Optional[bool] = None
     comment: Optional[str] = None
     image_url: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
@@ -27,6 +28,7 @@ class CommunitySummary(BaseModel):
     wifi_available: Optional[bool] = None
     outlets_available: Optional[bool] = None
     parking_available: Optional[bool] = None
+    food_available: Optional[bool] = None
     overall_feel: Optional[str] = None
     overall_rating: Optional[float] = None
 
