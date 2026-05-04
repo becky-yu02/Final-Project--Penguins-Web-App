@@ -10,9 +10,9 @@ async def test_create_gathering(default_client: AsyncClient, auth_headers):
             "title": "Test Gathering",
             "place_id": "place-1",
             "datetime_start": "2026-05-10T12:00:00Z",
-            "visibility": "public"
+            "visibility": "public",
         },
-        headers=auth_headers
+        headers=auth_headers,
     )
 
     assert response.status_code == 200
@@ -35,16 +35,15 @@ async def test_delete_gathering(default_client: AsyncClient, auth_headers):
             "title": "Delete Me",
             "place_id": "place-1",
             "datetime_start": "2026-05-10T12:00:00Z",
-            "visibility": "public"
+            "visibility": "public",
         },
-        headers=auth_headers
+        headers=auth_headers,
     )
 
     gid = create.json()["id"]
 
     delete = await default_client.delete(
-        f"/penguins/gatherings/{gid}",
-        headers=auth_headers
+        f"/penguins/gatherings/{gid}", headers=auth_headers
     )
 
     assert delete.status_code == 200
