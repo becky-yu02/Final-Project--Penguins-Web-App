@@ -1,0 +1,198 @@
+[
+  {
+    "_id": { "$oid": "676f000000000000000000a1" },
+    "username": "b3rrybunny",
+    "email": "bailey@penguins-demo.com",
+    "hashed_password": "USE_SEED_PY",
+    "role": "admin",
+    "first_name": "Bailey",
+    "last_name": "O",
+    "profile_image_url": null,
+    "favorite_places": [
+      "676f000000000000000000b1",
+      "676f000000000000000000b3"
+    ],
+    "friend_ids": [
+      "676f000000000000000000a2",
+      "676f000000000000000000a3",
+      "676f000000000000000000a5"
+    ],
+    "preferences": {
+      "max_distance_miles": 5.0,
+      "wifi_required": false,
+      "outlets_required": false,
+      "parking_required": false,
+      "preferred_types": ["cafe", "library"]
+    },
+    "online_status": {
+      "is_online": true,
+      "broadcasting": false,
+      "current_gathering_id": null
+    },
+    "created_at": { "$date": "2026-01-15T12:00:00.000Z" },
+    "updated_at": { "$date": "2026-05-03T08:00:00.000Z" }
+  },
+  {
+    "_id": { "$oid": "676f000000000000000000a2" },
+    "username": "hawkeyefan99",
+    "email": "jordan@penguins-demo.com",
+    "hashed_password": "USE_SEED_PY",
+    "role": "basic",
+    "first_name": "Jordan",
+    "last_name": "K",
+    "profile_image_url": null,
+    "favorite_places": [
+      "676f000000000000000000b1",
+      "676f000000000000000000b4"
+    ],
+    "friend_ids": [
+      "676f000000000000000000a1",
+      "676f000000000000000000a3",
+      "676f000000000000000000a4"
+    ],
+    "preferences": {
+      "max_distance_miles": 3.0,
+      "wifi_required": true,
+      "outlets_required": true,
+      "parking_required": false,
+      "preferred_types": ["study_space", "library"]
+    },
+    "online_status": {
+      "is_online": true,
+      "broadcasting": true,
+      "current_gathering_id": "676f000000000000000000c1"
+    },
+    "created_at": { "$date": "2026-01-20T09:30:00.000Z" },
+    "updated_at": { "$date": "2026-05-03T14:00:00.000Z" }
+  },
+  {
+    "_id": { "$oid": "676f000000000000000000a3" },
+    "username": "iowacity_dev",
+    "email": "sam@penguins-demo.com",
+    "hashed_password": "USE_SEED_PY",
+    "role": "basic",
+    "first_name": "Sam",
+    "last_name": "T",
+    "profile_image_url": null,
+    "favorite_places": [
+      "676f000000000000000000b2",
+      "676f000000000000000000b5"
+    ],
+    "friend_ids": [
+      "676f000000000000000000a1",
+      "676f000000000000000000a2",
+      "676f000000000000000000a6"
+    ],
+    "preferences": {
+      "max_distance_miles": 2.0,
+      "wifi_required": true,
+      "outlets_required": false,
+      "parking_required": false,
+      "preferred_types": ["cafe"]
+    },
+    "online_status": {
+      "is_online": true,
+      "broadcasting": true,
+      "current_gathering_id": "676f000000000000000000c2"
+    },
+    "created_at": { "$date": "2026-02-01T14:00:00.000Z" },
+    "updated_at": { "$date": "2026-05-03T13:00:00.000Z" }
+  },
+  {
+    "_id": { "$oid": "676f000000000000000000a4" },
+    "username": "riverside_reader",
+    "email": "morgan@penguins-demo.com",
+    "hashed_password": "USE_SEED_PY",
+    "role": "basic",
+    "first_name": "Morgan",
+    "last_name": "W",
+    "profile_image_url": null,
+    "favorite_places": [
+      "676f000000000000000000b6",
+      "676f000000000000000000b3"
+    ],
+    "friend_ids": [
+      "676f000000000000000000a2",
+      "676f000000000000000000a6"
+    ],
+    "preferences": {
+      "max_distance_miles": 10.0,
+      "wifi_required": false,
+      "outlets_required": false,
+      "parking_required": true,
+      "preferred_types": ["library", "cafe"]
+    },
+    "online_status": {
+      "is_online": false,
+      "broadcasting": false,
+      "current_gathering_id": null
+    },
+    "created_at": { "$date": "2026-02-10T10:00:00.000Z" },
+    "updated_at": { "$date": "2026-04-30T18:00:00.000Z" }
+  },
+  {
+    "_id": { "$oid": "676f000000000000000000a5" },
+    "username": "studybuddy_alex",
+    "email": "alex@penguins-demo.com",
+    "hashed_password": "USE_SEED_PY",
+    "role": "basic",
+    "first_name": "Alex",
+    "last_name": "P",
+    "profile_image_url": null,
+    "favorite_places": [
+      "676f000000000000000000b3",
+      "676f000000000000000000b4"
+    ],
+    "friend_ids": [
+      "676f000000000000000000a1",
+      "676f000000000000000000a6"
+    ],
+    "preferences": {
+      "max_distance_miles": 5.0,
+      "wifi_required": true,
+      "outlets_required": true,
+      "parking_required": false,
+      "preferred_types": ["study_space", "library"]
+    },
+    "online_status": {
+      "is_online": true,
+      "broadcasting": false,
+      "current_gathering_id": null
+    },
+    "created_at": { "$date": "2026-02-14T08:00:00.000Z" },
+    "updated_at": { "$date": "2026-05-03T10:30:00.000Z" }
+  },
+  {
+    "_id": { "$oid": "676f000000000000000000a6" },
+    "username": "casey_codes",
+    "email": "casey@penguins-demo.com",
+    "hashed_password": "USE_SEED_PY",
+    "role": "basic",
+    "first_name": "Casey",
+    "last_name": "L",
+    "profile_image_url": null,
+    "favorite_places": [
+      "676f000000000000000000b2",
+      "676f000000000000000000b4"
+    ],
+    "friend_ids": [
+      "676f000000000000000000a3",
+      "676f000000000000000000a4",
+      "676f000000000000000000a5"
+    ],
+    "preferences": {
+      "max_distance_miles": 4.0,
+      "wifi_required": true,
+      "outlets_required": false,
+      "parking_required": false,
+      "preferred_types": ["cafe", "student_union"]
+    },
+    "online_status": {
+      "is_online": true,
+      "broadcasting": false,
+      "current_gathering_id": null
+    },
+    "created_at": { "$date": "2026-03-01T11:00:00.000Z" },
+    "updated_at": { "$date": "2026-05-03T09:00:00.000Z" }
+  }
+]

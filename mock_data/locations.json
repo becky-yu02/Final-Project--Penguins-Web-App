@@ -1,0 +1,289 @@
+[
+  {
+    "_id": { "$oid": "676f000000000000000000b1" },
+    "name": "Macbride Hall",
+    "address": "203 N Madison St, Iowa City, IA 52242",
+    "type_of_place": "study_space",
+    "coordinates": { "lat": 41.6611, "lng": -91.5355 },
+    "community_notes": [
+      {
+        "note_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "user_id": "676f000000000000000000a2",
+        "wifi_available": true,
+        "outlets_available": true,
+        "parking_available": false,
+        "food_available": false,
+        "comment": "Great quiet study space on the upper floors. Wifi is solid and there are outlets at most desks.",
+        "image_url": null,
+        "created_at": { "$date": "2026-04-15T10:30:00.000Z" }
+      },
+      {
+        "note_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+        "user_id": "676f000000000000000000a5",
+        "wifi_available": true,
+        "outlets_available": true,
+        "parking_available": false,
+        "food_available": false,
+        "comment": "Basement study rooms are perfect for group work. Book them in advance through the library website!",
+        "image_url": null,
+        "created_at": { "$date": "2026-04-20T14:00:00.000Z" }
+      }
+    ],
+    "community_summary": {
+      "wifi_available": true,
+      "outlets_available": true,
+      "parking_available": false,
+      "food_available": false,
+      "overall_feel": "focused",
+      "overall_rating": 4.1
+    },
+    "created_at": { "$date": "2026-01-01T00:00:00.000Z" },
+    "updated_at": { "$date": "2026-04-20T14:00:00.000Z" }
+  },
+  {
+    "_id": { "$oid": "676f000000000000000000b2" },
+    "name": "The Java House",
+    "address": "211 E Washington St, Iowa City, IA 52240",
+    "type_of_place": "cafe",
+    "coordinates": { "lat": 41.6594, "lng": -91.5313 },
+    "community_notes": [
+      {
+        "note_id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+        "user_id": "676f000000000000000000a3",
+        "wifi_available": true,
+        "outlets_available": true,
+        "parking_available": false,
+        "food_available": true,
+        "comment": "My go-to spot. Wifi password is on the chalkboard. Outlets along the back wall. Gets busy around 10am.",
+        "image_url": null,
+        "created_at": { "$date": "2026-03-10T09:00:00.000Z" }
+      },
+      {
+        "note_id": "d4e5f6a7-b8c9-0123-defa-234567890123",
+        "user_id": "676f000000000000000000a6",
+        "wifi_available": true,
+        "outlets_available": false,
+        "parking_available": false,
+        "food_available": true,
+        "comment": "Outlets only on the back wall — grab a seat early if you need to plug in. Coffee is excellent.",
+        "image_url": null,
+        "created_at": { "$date": "2026-04-02T11:15:00.000Z" }
+      },
+      {
+        "note_id": "e5f6a7b8-c9d0-1234-efab-345678901234",
+        "user_id": "676f000000000000000000a1",
+        "wifi_available": true,
+        "outlets_available": true,
+        "parking_available": false,
+        "food_available": true,
+        "comment": "Cozy vibe, great for solo work or small groups. The upstairs loft is quieter.",
+        "image_url": null,
+        "created_at": { "$date": "2026-04-28T08:45:00.000Z" }
+      }
+    ],
+    "community_summary": {
+      "wifi_available": true,
+      "outlets_available": true,
+      "parking_available": false,
+      "food_available": true,
+      "overall_feel": "cozy",
+      "overall_rating": 4.5
+    },
+    "created_at": { "$date": "2026-01-01T00:00:00.000Z" },
+    "updated_at": { "$date": "2026-04-28T08:45:00.000Z" }
+  },
+  {
+    "_id": { "$oid": "676f000000000000000000b3" },
+    "name": "University of Iowa Main Library",
+    "address": "125 W Washington St, Iowa City, IA 52242",
+    "type_of_place": "library",
+    "coordinates": { "lat": 41.6616, "lng": -91.5354 },
+    "community_notes": [
+      {
+        "note_id": "f6a7b8c9-d0e1-2345-fabc-456789012345",
+        "user_id": "676f000000000000000000a4",
+        "wifi_available": true,
+        "outlets_available": true,
+        "parking_available": false,
+        "food_available": false,
+        "comment": "Super quiet on floors 3 and 4. Outlets everywhere. Perfect for finals crunch.",
+        "image_url": null,
+        "created_at": { "$date": "2026-04-10T16:00:00.000Z" }
+      },
+      {
+        "note_id": "a7b8c9d0-e1f2-3456-abcd-567890123456",
+        "user_id": "676f000000000000000000a1",
+        "wifi_available": true,
+        "outlets_available": true,
+        "parking_available": false,
+        "food_available": false,
+        "comment": "The 24/7 room on the main floor is a lifesaver during dead week. Always busy but dependable.",
+        "image_url": null,
+        "created_at": { "$date": "2026-04-22T22:30:00.000Z" }
+      }
+    ],
+    "community_summary": {
+      "wifi_available": true,
+      "outlets_available": true,
+      "parking_available": false,
+      "food_available": false,
+      "overall_feel": "quiet",
+      "overall_rating": 4.3
+    },
+    "created_at": { "$date": "2026-01-01T00:00:00.000Z" },
+    "updated_at": { "$date": "2026-04-22T22:30:00.000Z" }
+  },
+  {
+    "_id": { "$oid": "676f000000000000000000b4" },
+    "name": "Iowa Memorial Union",
+    "address": "125 N Madison St, Iowa City, IA 52242",
+    "type_of_place": "student_union",
+    "coordinates": { "lat": 41.6609, "lng": -91.5341 },
+    "community_notes": [
+      {
+        "note_id": "b8c9d0e1-f2a3-4567-bcde-678901234567",
+        "user_id": "676f000000000000000000a2",
+        "wifi_available": true,
+        "outlets_available": true,
+        "parking_available": false,
+        "food_available": true,
+        "comment": "Tons of seating and food options. Can get loud during lunch but calms down in the afternoon.",
+        "image_url": null,
+        "created_at": { "$date": "2026-03-25T13:30:00.000Z" }
+      },
+      {
+        "note_id": "c9d0e1f2-a3b4-5678-cdef-789012345678",
+        "user_id": "676f000000000000000000a5",
+        "wifi_available": true,
+        "outlets_available": true,
+        "parking_available": false,
+        "food_available": true,
+        "comment": "The River Room lounge on the second floor is underrated — great views and usually not crowded.",
+        "image_url": null,
+        "created_at": { "$date": "2026-04-05T15:00:00.000Z" }
+      }
+    ],
+    "community_summary": {
+      "wifi_available": true,
+      "outlets_available": true,
+      "parking_available": false,
+      "food_available": true,
+      "overall_feel": "lively",
+      "overall_rating": 4.0
+    },
+    "created_at": { "$date": "2026-01-01T00:00:00.000Z" },
+    "updated_at": { "$date": "2026-04-05T15:00:00.000Z" }
+  },
+  {
+    "_id": { "$oid": "676f000000000000000000b5" },
+    "name": "Prairie Lights Books",
+    "address": "15 S Dubuque St, Iowa City, IA 52240",
+    "type_of_place": "cafe",
+    "coordinates": { "lat": 41.6601, "lng": -91.5329 },
+    "community_notes": [
+      {
+        "note_id": "d0e1f2a3-b4c5-6789-defa-890123456789",
+        "user_id": "676f000000000000000000a3",
+        "wifi_available": true,
+        "outlets_available": false,
+        "parking_available": false,
+        "food_available": true,
+        "comment": "One of the best spots in Iowa City. Very few outlets so bring a full battery. The cafe upstairs is magical.",
+        "image_url": null,
+        "created_at": { "$date": "2026-04-01T10:00:00.000Z" }
+      },
+      {
+        "note_id": "e1f2a3b4-c5d6-7890-efab-901234567890",
+        "user_id": "676f000000000000000000a6",
+        "wifi_available": true,
+        "outlets_available": false,
+        "parking_available": false,
+        "food_available": true,
+        "comment": "Charming independent bookstore cafe. Great for a solo work session or a low-key meetup.",
+        "image_url": null,
+        "created_at": { "$date": "2026-04-18T17:00:00.000Z" }
+      }
+    ],
+    "community_summary": {
+      "wifi_available": true,
+      "outlets_available": false,
+      "parking_available": false,
+      "food_available": true,
+      "overall_feel": "cozy",
+      "overall_rating": 4.7
+    },
+    "created_at": { "$date": "2026-01-01T00:00:00.000Z" },
+    "updated_at": { "$date": "2026-04-18T17:00:00.000Z" }
+  },
+  {
+    "_id": { "$oid": "676f000000000000000000b6" },
+    "name": "Coralville Public Library",
+    "address": "1401 5th St, Coralville, IA 52241",
+    "type_of_place": "library",
+    "coordinates": { "lat": 41.6734, "lng": -91.5802 },
+    "community_notes": [
+      {
+        "note_id": "f2a3b4c5-d6e7-8901-fabc-012345678901",
+        "user_id": "676f000000000000000000a4",
+        "wifi_available": true,
+        "outlets_available": true,
+        "parking_available": true,
+        "food_available": false,
+        "comment": "Underrated gem. Free parking, fast wifi, quiet study rooms you can reserve online. Worth the short drive.",
+        "image_url": null,
+        "created_at": { "$date": "2026-04-08T14:30:00.000Z" }
+      }
+    ],
+    "community_summary": {
+      "wifi_available": true,
+      "outlets_available": true,
+      "parking_available": true,
+      "food_available": false,
+      "overall_feel": "quiet",
+      "overall_rating": 4.4
+    },
+    "created_at": { "$date": "2026-01-01T00:00:00.000Z" },
+    "updated_at": { "$date": "2026-04-08T14:30:00.000Z" }
+  },
+  {
+    "_id": { "$oid": "676f000000000000000000b7" },
+    "name": "Bruegger's Bagels",
+    "address": "19 S Dubuque St, Iowa City, IA 52240",
+    "type_of_place": "cafe",
+    "coordinates": { "lat": 41.6600, "lng": -91.5330 },
+    "community_notes": [
+      {
+        "note_id": "a3b4c5d6-e7f8-9012-abcd-123456789012",
+        "user_id": "676f000000000000000000a1",
+        "wifi_available": true,
+        "outlets_available": false,
+        "parking_available": false,
+        "food_available": true,
+        "comment": "Solid morning spot. Wifi works fine, not many outlets. Bagels are great. Gets crowded 8-10am.",
+        "image_url": null,
+        "created_at": { "$date": "2026-04-25T08:00:00.000Z" }
+      },
+      {
+        "note_id": "b4c5d6e7-f8a9-0123-bcde-234567890123",
+        "user_id": "676f000000000000000000a2",
+        "wifi_available": true,
+        "outlets_available": false,
+        "parking_available": false,
+        "food_available": true,
+        "comment": "Quick meetings or a casual study session before class. Don't count on finding an outlet.",
+        "image_url": null,
+        "created_at": { "$date": "2026-04-29T07:45:00.000Z" }
+      }
+    ],
+    "community_summary": {
+      "wifi_available": true,
+      "outlets_available": false,
+      "parking_available": false,
+      "food_available": true,
+      "overall_feel": "casual",
+      "overall_rating": 3.9
+    },
+    "created_at": { "$date": "2026-01-01T00:00:00.000Z" },
+    "updated_at": { "$date": "2026-04-29T07:45:00.000Z" }
+  }
+]

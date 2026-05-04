@@ -1,12 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import Navbar from '../components/Navbar';
 import PlaceCard from '../components/PlaceCard';
 import MapView from '../components/MapView';
-import mockPlaces from '../mock/places.json';
 import { useAuth } from '../context/AuthContext';
 
 const API = 'http://127.0.0.1:8000';
-const PLACE_TYPES = [...new Set(mockPlaces.map(p => p.type_of_place))];
 
 function hasNoPreferences(prefs) {
   if (!prefs) return true;
@@ -25,6 +23,9 @@ export default function Discovery() {
   const [selectedType, setSelectedType] = useState('');
   const [selectedPlaceId, setSelectedPlaceId] = useState(null);
   const [showPrefsModal, setShowPrefsModal] = useState(false);
+  const [userId, setUserId] = useState(null);
+  const [places, setPlaces] = useState([]);
+  const [gatherings, setGatherings] = useState([]);
   const [prefs, setPrefs] = useState({
     preferred_types: [],
     max_distance_miles: '',
@@ -35,18 +36,41 @@ export default function Discovery() {
   const cardRefs = useRef({});
 
   useEffect(() => {
+    fetch(`${API}/penguins/places`)
+      .then(r => r.json())
+      .then(setPlaces)
+      .catch(() => {});
+    fetch(`${API}/penguins/gatherings`)
+      .then(r => r.json())
+      .then(setGatherings)
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (!token) return;
     fetch(`${API}/penguins/users/me`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())
       .then(user => {
-        if (hasNoPreferences(user.preferences)) {
+        setUserId(user.id);
+        const alreadySeen = localStorage.getItem(`prefs_modal_seen_${user.id}`);
+        if (!alreadySeen && hasNoPreferences(user.preferences)) {
           setShowPrefsModal(true);
         }
       })
       .catch(() => { });
   }, [token]);
+
+  const PLACE_TYPES = useMemo(
+    () => [...new Set(places.map(p => p.type_of_place))].sort(),
+    [places]
+  );
+
+  function dismissModal() {
+    if (userId) localStorage.setItem(`prefs_modal_seen_${userId}`, '1');
+    setShowPrefsModal(false);
+  }
 
   async function savePrefs() {
     const body = {
@@ -55,12 +79,12 @@ export default function Discovery() {
         max_distance_miles: prefs.max_distance_miles ? parseFloat(prefs.max_distance_miles) : null,
       },
     };
-    await fetch(`${API}/penguins/users/me`, {
+    const res = await fetch(`${API}/penguins/users/me`, {
       method: 'PUT',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-    setShowPrefsModal(false);
+    if (res.ok) dismissModal();
   }
 
   function toggleType(type) {
@@ -72,9 +96,7 @@ export default function Discovery() {
     }));
   }
 
-  const types = PLACE_TYPES;
-
-  const filtered = mockPlaces.filter(p => {
+  const filtered = places.filter(p => {
     const matchSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.address.toLowerCase().includes(search.toLowerCase());
@@ -82,7 +104,6 @@ export default function Discovery() {
     return matchSearch && matchType;
   });
 
-  // Scroll to card when marker clicked
   useEffect(() => {
     if (!selectedPlaceId) return;
     if (cardRefs.current[selectedPlaceId]) {
@@ -90,7 +111,6 @@ export default function Discovery() {
     }
   }, [selectedPlaceId]);
 
-  // Clear selection if the selected place is filtered out
   useEffect(() => {
     if (selectedPlaceId && !filtered.some(p => p.id === selectedPlaceId)) {
       setSelectedPlaceId(null);
@@ -123,7 +143,7 @@ export default function Discovery() {
             >
               All
             </button>
-            {types.map(type => (
+            {PLACE_TYPES.map(type => (
               <button
                 key={type}
                 className={`btn btn-sm ${selectedType === type ? 'btn-dark' : 'btn-outline-secondary'} text-capitalize`}
@@ -146,7 +166,7 @@ export default function Discovery() {
                   onClick={() => setSelectedPlaceId(place.id === selectedPlaceId ? null : place.id)}
                   style={{ cursor: 'pointer' }}
                 >
-                  <PlaceCard place={place} highlighted={place.id === selectedPlaceId} />
+                  <PlaceCard place={place} gatherings={gatherings} highlighted={place.id === selectedPlaceId} />
                 </div>
               ))}
             </div>
@@ -221,7 +241,7 @@ export default function Discovery() {
                   ))}
                 </div>
                 <div className="modal-footer">
-                  <button className="btn btn-outline-secondary" onClick={() => setShowPrefsModal(false)}>
+                  <button className="btn btn-outline-secondary" onClick={dismissModal}>
                     Skip
                   </button>
                   <button className="btn btn-primary" onClick={savePrefs}>

@@ -1,0 +1,100 @@
+[
+  {
+    "_id": { "$oid": "676f000000000000000000c1" },
+    "host_user_id": "676f000000000000000000a2",
+    "place_id": "676f000000000000000000b1",
+    "datetime_start": { "$date": "2026-05-03T14:00:00.000Z" },
+    "datetime_end": { "$date": "2026-05-03T17:00:00.000Z" },
+    "title": "CS Study Group",
+    "description": "Weekly CS study session — bringing notes for Algorithms and OS. All CS students welcome!",
+    "visibility": "public",
+    "status": "active",
+    "participant_user_ids": [
+      "676f000000000000000000a2",
+      "676f000000000000000000a1",
+      "676f000000000000000000a3",
+      "676f000000000000000000a5",
+      "676f000000000000000000a6"
+    ],
+    "image_url": null,
+    "created_at": { "$date": "2026-05-01T09:00:00.000Z" },
+    "updated_at": { "$date": "2026-05-03T14:00:00.000Z" }
+  },
+  {
+    "_id": { "$oid": "676f000000000000000000c2" },
+    "host_user_id": "676f000000000000000000a3",
+    "place_id": "676f000000000000000000b2",
+    "datetime_start": { "$date": "2026-05-03T13:00:00.000Z" },
+    "datetime_end": { "$date": "2026-05-03T16:00:00.000Z" },
+    "title": "Coffee & Code",
+    "description": "Casual coding hangout. Bring your laptop and whatever you're working on — side projects, homework, anything. Good coffee mandatory.",
+    "visibility": "public",
+    "status": "active",
+    "participant_user_ids": [
+      "676f000000000000000000a3",
+      "676f000000000000000000a4"
+    ],
+    "image_url": null,
+    "created_at": { "$date": "2026-05-02T11:00:00.000Z" },
+    "updated_at": { "$date": "2026-05-03T13:00:00.000Z" }
+  },
+  {
+    "_id": { "$oid": "676f000000000000000000c3" },
+    "host_user_id": "676f000000000000000000a1",
+    "place_id": "676f000000000000000000b3",
+    "datetime_start": { "$date": "2026-05-05T10:00:00.000Z" },
+    "datetime_end": { "$date": "2026-05-05T14:00:00.000Z" },
+    "title": "Finals Prep Session",
+    "description": "Organized study block for finals week. We'll each work on our own stuff but it helps to be around other people grinding. Quiet zone — headphones in.",
+    "visibility": "public",
+    "status": "scheduled",
+    "participant_user_ids": [
+      "676f000000000000000000a1",
+      "676f000000000000000000a2",
+      "676f000000000000000000a3",
+      "676f000000000000000000a4",
+      "676f000000000000000000a5"
+    ],
+    "image_url": null,
+    "created_at": { "$date": "2026-04-30T20:00:00.000Z" },
+    "updated_at": { "$date": "2026-04-30T20:00:00.000Z" }
+  },
+  {
+    "_id": { "$oid": "676f000000000000000000c4" },
+    "host_user_id": "676f000000000000000000a1",
+    "place_id": "676f000000000000000000b4",
+    "datetime_start": { "$date": "2026-05-06T15:00:00.000Z" },
+    "datetime_end": { "$date": "2026-05-06T17:00:00.000Z" },
+    "title": "Group Project Meeting",
+    "description": "Final check-in before submission. Finishing the demo, slides, and writeup. Friends only.",
+    "visibility": "friends",
+    "status": "scheduled",
+    "participant_user_ids": [
+      "676f000000000000000000a1",
+      "676f000000000000000000a2",
+      "676f000000000000000000a5"
+    ],
+    "image_url": null,
+    "created_at": { "$date": "2026-05-01T18:00:00.000Z" },
+    "updated_at": { "$date": "2026-05-01T18:00:00.000Z" }
+  },
+  {
+    "_id": { "$oid": "676f000000000000000000c5" },
+    "host_user_id": "676f000000000000000000a6",
+    "place_id": "676f000000000000000000b5",
+    "datetime_start": { "$date": "2026-05-08T18:00:00.000Z" },
+    "datetime_end": { "$date": "2026-05-08T20:00:00.000Z" },
+    "title": "AI/ML Reading Group",
+    "description": "Biweekly reading group. This week: Attention Is All You Need + a short follow-up paper on vision transformers. No pressure if you haven't finished — come anyway.",
+    "visibility": "public",
+    "status": "scheduled",
+    "participant_user_ids": [
+      "676f000000000000000000a6",
+      "676f000000000000000000a3",
+      "676f000000000000000000a5"
+    ],
+    "image_url": null,
+    "created_at": { "$date": "2026-05-01T12:00:00.000Z" },
+    "updated_at": { "$date": "2026-05-01T12:00:00.000Z" }
+  }
+]

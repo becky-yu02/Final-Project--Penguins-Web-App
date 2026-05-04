@@ -3,38 +3,48 @@ import Navbar from '../components/Navbar';
 import GatheringCard from '../components/GatheringCard';
 import PlaceCard from '../components/PlaceCard';
 import MapView from '../components/MapView';
-import mockGatherings from '../mock/gatherings.json';
-import mockPlaces from '../mock/places.json';
-import mockUsers from '../mock/users.json';
+import { useUser } from '../context/UserContext';
 
-const currentUser = mockUsers.find(u => u.username === 'b3rrybunny');
+const API = 'http://127.0.0.1:8000';
 
 export default function Home() {
+  const user = useUser();
   const [view, setView] = useState('gatherings');
   const [selectedPlaceId, setSelectedPlaceId] = useState(null);
+  const [places, setPlaces] = useState([]);
+  const [gatherings, setGatherings] = useState([]);
   const cardRefs = useRef({});
 
-  const active = mockGatherings.filter(g => g.status === 'ACTIVE');
-  const scheduled = mockGatherings.filter(g => g.status === 'SCHEDULED');
+  useEffect(() => {
+    fetch(`${API}/penguins/places`)
+      .then(r => r.json())
+      .then(setPlaces)
+      .catch(() => {});
+    fetch(`${API}/penguins/gatherings`)
+      .then(r => r.json())
+      .then(setGatherings)
+      .catch(() => {});
+  }, []);
+
+  const active = gatherings.filter(g => g.status === 'active');
+  const scheduled = gatherings.filter(g => g.status === 'scheduled');
   const allGatherings = [...active, ...scheduled];
 
-  const favoritePlaces = mockPlaces.filter(p =>
-    currentUser.favorite_places?.includes(p.id)
+  const favoritePlaces = places.filter(p =>
+    user?.favorite_places?.includes(p.id)
   );
 
-  const placesWithGatherings = mockPlaces.filter(p =>
-    mockGatherings.some(g => g.place_id === p.id)
+  const placesWithGatherings = places.filter(p =>
+    gatherings.some(g => g.place_id === p.id)
   );
 
   const mapPlaces = view === 'favorites' ? favoritePlaces : placesWithGatherings;
 
-  // Reset selection when switching views
   function switchView(next) {
     setView(next);
     setSelectedPlaceId(null);
   }
 
-  // Scroll to first matching card when a marker is clicked
   useEffect(() => {
     if (!selectedPlaceId) return;
     let matchId = null;
@@ -49,8 +59,8 @@ export default function Home() {
     }
   }, [selectedPlaceId]);
 
-  function renderGatherings(gatherings) {
-    return gatherings.map(g => (
+  function renderGatherings(gatheringsList) {
+    return gatheringsList.map(g => (
       <div
         className="col"
         key={g.id}
@@ -60,7 +70,7 @@ export default function Home() {
       >
         <GatheringCard
           gathering={g}
-          placeSummary={mockPlaces.find(p => p.id === g.place_id)?.community_summary}
+          place={places.find(p => p.id === g.place_id)}
           highlighted={g.place_id === selectedPlaceId}
         />
       </div>
@@ -136,7 +146,7 @@ export default function Home() {
                       onClick={() => setSelectedPlaceId(p.id === selectedPlaceId ? null : p.id)}
                       style={{ cursor: 'pointer' }}
                     >
-                      <PlaceCard place={p} highlighted={p.id === selectedPlaceId} />
+                      <PlaceCard place={p} gatherings={gatherings} highlighted={p.id === selectedPlaceId} />
                     </div>
                   ))}
                 </div>

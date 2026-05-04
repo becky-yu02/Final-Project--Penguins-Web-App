@@ -1,3 +1,7 @@
+//!! Left here for reference and potential future use but cannot be visted
+//!! through site UI, have to use /settings URL directly
+
+
 import { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
@@ -42,7 +46,7 @@ export default function Settings() {
           });
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [token]);
 
   async function handleSave() {

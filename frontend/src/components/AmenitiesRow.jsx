@@ -1,9 +1,9 @@
 // Quick visual representation of amenities available at a location, based on the summary data
-import WifiIcon from '../assets/amentities_icons/wifi_ok.svg?react';
-import NoWifiIcon from '../assets/amentities_icons/wifi_not_ok.svg?react';
-import OutletIcon from '../assets/amentities_icons/outlet.svg?react';
-import ParkingIcon from '../assets/amentities_icons/parking.svg?react';
-import FoodIcon from '../assets/amentities_icons/food.svg?react';
+import WifiIcon from '../assets/wifi_ok.svg?react';
+import NoWifiIcon from '../assets/wifi_not_ok.svg?react';
+import OutletIcon from '../assets/outlet.svg?react';
+import ParkingIcon from '../assets/parking.svg?react';
+import FoodIcon from '../assets/food.svg?react';
 
 const COLOR = {
   true: '#198754',
