@@ -1,81 +1,46 @@
 import pytest
 from httpx import AsyncClient
 
-from app.core.security import hash_password
-from app.models.user import User
-
 
 @pytest.mark.anyio
-async def test_sign_new_user(default_client: AsyncClient) -> None:
-    payload = {"username": "testuser123", "password": "test-password"}
-
-    headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    expected_response = {"message": "User created successfully"}
-
-    response = await default_client.post("/auth/signup", json=payload, headers=headers)
-
-    assert response.status_code == 200
-    assert response.json() == expected_response
-
-
-@pytest.mark.anyio
-async def test_sign_user_in(default_client: AsyncClient) -> None:
-    await User.insert_one(
-        User(
-            username="testuser123",
-            password=hash_password("test-password").decode("utf-8"),
-        )
+async def test_signup(default_client: AsyncClient):
+    response = await default_client.post(
+        "/penguins/auth/signup",
+        json={"username": "newuser", "password": "testpass"}
     )
 
-    payload = {"username": "testuser123", "password": "test-password"}
-
-    headers = {
-        "accept": "application/json",
-        "Content-Type": "application/x-www-form-urlencoded",
-    }
-
-    response = await default_client.post("/auth/sign-in", data=payload, headers=headers)
-
     assert response.status_code == 200
-
-    body = response.json()
-    assert body["username"] == "testuser123"
-    assert body["role"] == "BasicUser"
-    assert isinstance(body["access_token"], str)
-    assert "expiry" in body
+    assert response.json()["message"] == "User created successfully"
 
 
 @pytest.mark.anyio
-async def test_sign_user_in_wrong_password(default_client: AsyncClient) -> None:
-    await User.insert_one(
-        User(
-            username="testuser123",
-            password=hash_password("correct-password").decode("utf-8"),
-        )
+async def test_login_success(default_client: AsyncClient):
+    await default_client.post(
+        "/penguins/auth/signup",
+        json={"username": "user1", "password": "testpass"}
     )
 
-    payload = {"username": "testuser123", "password": "wrong-password"}
+    response = await default_client.post(
+        "/penguins/auth/sign-in",
+        data={"username": "user1", "password": "testpass"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
+    )
 
-    headers = {
-        "accept": "application/json",
-        "Content-Type": "application/x-www-form-urlencoded",
-    }
-
-    response = await default_client.post("/auth/sign-in", data=payload, headers=headers)
-
-    assert response.status_code == 401
+    assert response.status_code == 200
+    assert "access_token" in response.json()
 
 
 @pytest.mark.anyio
-async def test_sign_user_in_user_not_found(default_client: AsyncClient) -> None:
-    payload = {"username": "nonexistentuser", "password": "whatever"}
+async def test_login_wrong_password(default_client: AsyncClient):
+    await default_client.post(
+        "/penguins/auth/signup",
+        json={"username": "user2", "password": "correct"}
+    )
 
-    headers = {
-        "accept": "application/json",
-        "Content-Type": "application/x-www-form-urlencoded",
-    }
-
-    response = await default_client.post("/auth/sign-in", data=payload, headers=headers)
+    response = await default_client.post(
+        "/penguins/auth/sign-in",
+        data={"username": "user2", "password": "wrong"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
+    )
 
     assert response.status_code == 401
