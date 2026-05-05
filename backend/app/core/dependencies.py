@@ -9,6 +9,7 @@ from app.models.location import Location
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/penguins/auth/login")
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/penguins/auth/login", auto_error=False)
 logger = logging.getLogger(__name__)
 
 
@@ -35,6 +36,19 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
         raise credentials_exception
 
     return user
+
+
+async def get_current_user_optional(token: str | None = Depends(oauth2_scheme_optional)) -> User | None:
+    if not token:
+        return None
+    try:
+        payload = decode_access_token(token)
+        username: str | None = payload.get("sub")
+        if not username:
+            return None
+        return await User.find_one(User.username == username)
+    except jwt.PyJWTError:
+        return None
 
 
 async def check_note_permission(

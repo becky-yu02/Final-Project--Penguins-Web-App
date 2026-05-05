@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect, useLayoutEffect } from 'react';
 import AmenitiesRow from './AmenitiesRow';
+import vibeOptions from '../utils/vibe_options.json';
 import AddNoteModal from './AddNoteModal';
 import { useUser, useToggleFavorite } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
@@ -110,7 +111,10 @@ export default function PlaceCard({ place, gatherings = [], highlighted = false,
   }, [highlighted]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const rating = place.community_summary?.overall_rating;
-  const vibe = place.community_summary?.overall_feel;
+  const vibes = Array.isArray(place.community_summary?.overall_feel)
+    ? place.community_summary.overall_feel
+    : (place.community_summary?.overall_feel ? [place.community_summary.overall_feel] : []);
+  const vibeColorMap = Object.fromEntries(vibeOptions.vibes.map(v => [v.label.toLowerCase(), v.color]));
 
   let walkMins = null;
   if (userLocation && place.coordinates) {
@@ -172,12 +176,20 @@ export default function PlaceCard({ place, gatherings = [], highlighted = false,
           </div>
         </div>
 
-        {/* Row 3: Vibe left, walk time right */}
-        {(vibe || walkMins !== null) && (
+        {/* Row 3: Vibes left, walk time right */}
+        {(vibes.length > 0 || walkMins !== null) && (
           <div className="d-flex justify-content-between align-items-center">
-            {vibe
-              ? <p className="card-text small text-muted mb-0 text-capitalize">{vibe}</p>
-              : <span />}
+            <div className="d-flex flex-wrap gap-1">
+              {vibes.map(v => (
+                <span
+                  key={v}
+                  className="badge"
+                  style={{ backgroundColor: vibeColorMap[v.toLowerCase()] ?? '#6c757d', color: '#fff', fontWeight: 500, textTransform: 'capitalize' }}
+                >
+                  {v}
+                </span>
+              ))}
+            </div>
             {walkMins !== null && (
               <div className="d-flex align-items-center gap-1 text-muted small flex-shrink-0 ms-2">
                 <WalkIcon width={16} height={16} />

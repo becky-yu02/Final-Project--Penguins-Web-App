@@ -41,6 +41,7 @@
       "overall_feel": ["focused"],
       "overall_rating": 4.0
     },
+    "admin_approved": true,
     "created_at": { "$date": "2026-01-01T00:00:00.000Z" },
     "updated_at": { "$date": "2026-04-20T14:00:00.000Z" }
   },
@@ -99,6 +100,7 @@
       "overall_feel": ["cozy", "busy"],
       "overall_rating": 4.67
     },
+    "admin_approved": true,
     "created_at": { "$date": "2026-01-01T00:00:00.000Z" },
     "updated_at": { "$date": "2026-04-28T08:45:00.000Z" }
   },
@@ -144,6 +146,7 @@
       "overall_feel": ["quiet"],
       "overall_rating": 4.5
     },
+    "admin_approved": true,
     "created_at": { "$date": "2026-01-01T00:00:00.000Z" },
     "updated_at": { "$date": "2026-04-22T22:30:00.000Z" }
   },
@@ -189,6 +192,7 @@
       "overall_feel": ["lively"],
       "overall_rating": 4.0
     },
+    "admin_approved": true,
     "created_at": { "$date": "2026-01-01T00:00:00.000Z" },
     "updated_at": { "$date": "2026-04-05T15:00:00.000Z" }
   },
@@ -234,6 +238,7 @@
       "overall_feel": ["cozy", "charming"],
       "overall_rating": 5.0
     },
+    "admin_approved": true,
     "created_at": { "$date": "2026-01-01T00:00:00.000Z" },
     "updated_at": { "$date": "2026-04-18T17:00:00.000Z" }
   },
@@ -266,6 +271,7 @@
       "overall_feel": ["quiet"],
       "overall_rating": 4.0
     },
+    "admin_approved": true,
     "created_at": { "$date": "2026-01-01T00:00:00.000Z" },
     "updated_at": { "$date": "2026-04-08T14:30:00.000Z" }
   },
@@ -311,6 +317,7 @@
       "overall_feel": ["casual", "busy"],
       "overall_rating": 4.0
     },
+    "admin_approved": true,
     "created_at": { "$date": "2026-01-01T00:00:00.000Z" },
     "updated_at": { "$date": "2026-04-29T07:45:00.000Z" }
   }

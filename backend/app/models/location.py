@@ -42,6 +42,7 @@ class Location(Document):
     coordinates: Optional[Coordinates] = None
     community_notes: List[CommunityNote] = Field(default_factory=list)
     community_summary: CommunitySummary = Field(default_factory=CommunitySummary)
+    admin_approved: bool = Field(default=False)
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 

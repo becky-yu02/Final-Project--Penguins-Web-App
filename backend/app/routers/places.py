@@ -3,9 +3,9 @@ from datetime import datetime, UTC
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.core.dependencies import get_current_user, check_note_permission
+from app.core.dependencies import get_current_user, get_current_user_optional, check_note_permission
 from app.models.location import Location, CommunityNote, CommunitySummary
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.location import (
     PlaceCreateRequest,
     PlaceUpdateRequest,
@@ -106,9 +106,11 @@ async def create_place(
 
 
 @router.get("")
-async def get_places():
-    places = await Location.find_all().to_list()
-    logger.info("Listed places count=%s", len(places))
+async def get_places(current_user: User | None = Depends(get_current_user_optional)):
+    is_admin = current_user is not None and current_user.role == UserRole.ADMIN
+    query = {} if is_admin else {"admin_approved": True}
+    places = await Location.find(query).to_list()
+    logger.info("Listed places count=%s is_admin=%s", len(places), is_admin)
     return places
 
 
@@ -116,7 +118,9 @@ async def get_places():
 async def search_places(
     q: str = Query(min_length=1, max_length=100),
     limit: int = Query(default=10, ge=1, le=50),
+    current_user: User | None = Depends(get_current_user_optional),
 ):
+    is_admin = current_user is not None and current_user.role == UserRole.ADMIN
     search_term = q.strip()
     if not search_term:
         raise HTTPException(status_code=400, detail="Search query cannot be empty.")
@@ -128,8 +132,10 @@ async def search_places(
             {"type_of_place": {"$regex": search_term, "$options": "i"}},
         ]
     }
+    if not is_admin:
+        search_filter["admin_approved"] = True
     places = await Location.find(search_filter).limit(limit).to_list()
-    logger.info("Searched places query=%s result_count=%s", search_term, len(places))
+    logger.info("Searched places query=%s result_count=%s is_admin=%s", search_term, len(places), is_admin)
     return [to_place_summary(place) for place in places]
 
 
