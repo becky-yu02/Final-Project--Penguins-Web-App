@@ -4,7 +4,7 @@ from datetime import datetime, UTC
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.dependencies import get_current_user, check_note_permission
-from app.models.location import Location, CommunityNote
+from app.models.location import Location, CommunityNote, CommunitySummary
 from app.models.user import User
 from app.schemas.location import (
     PlaceCreateRequest,
@@ -15,6 +15,26 @@ from app.schemas.note import CommunityNoteRequest, NoteUpdate
 
 router = APIRouter(prefix="/places", tags=["places"])
 logger = logging.getLogger(__name__)
+
+
+def recompute_summary(notes: list[CommunityNote]) -> CommunitySummary:
+    def majority(field: str) -> bool | None:
+        opinions = [getattr(n, field) for n in notes if getattr(n, field) is not None]
+        if not opinions:
+            return None
+        return (opinions.count(True) / len(opinions)) >= 0.5
+
+    ratings = [n.rating for n in notes if n.rating is not None]
+    feels = list(dict.fromkeys(f for n in notes if (f := n.feel) is not None))
+
+    return CommunitySummary(
+        wifi_available=majority("wifi_available"),
+        outlets_available=majority("outlets_available"),
+        parking_available=majority("parking_available"),
+        food_available=majority("food_available"),
+        overall_feel=feels,
+        overall_rating=round(sum(ratings) / len(ratings), 2) if ratings else None,
+    )
 
 
 def to_place_summary(place: Location):
@@ -157,6 +177,7 @@ async def add_community_note(
         **payload.model_dump()
     )
     place.community_notes.append(note)
+    place.community_summary = recompute_summary(place.community_notes)
     place.updated_at = datetime.now(UTC)
     await place.save()
     logger.info("Added community note place_id=%s note_id=%s actor_user_id=%s", place.id, note.note_id, current_user.id)
@@ -197,6 +218,7 @@ async def update_community_note(
         raise HTTPException(status_code=404, detail="Note not found")
 
     updated_fields = apply_note_updates(place.community_notes[note_index], payload)
+    place.community_summary = recompute_summary(place.community_notes)
     place.updated_at = datetime.now(UTC)
     await place.save()
     logger.info("Updated community note place_id=%s note_id=%s fields=%s", place.id, note_id, updated_fields)
@@ -218,6 +240,7 @@ async def delete_community_note(
 
     # Remove the note
     place.community_notes = [n for n in place.community_notes if n.note_id != note_id]
+    place.community_summary = recompute_summary(place.community_notes)
     place.updated_at = datetime.now(UTC)
     await place.save()
     logger.warning("Deleted community note place_id=%s note_id=%s", place.id, note_id)

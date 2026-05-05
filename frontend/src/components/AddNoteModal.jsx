@@ -36,6 +36,8 @@ export default function AddNoteModal({ place, onClose }) {
     outlets_available: null,
     parking_available: null,
     food_available: null,
+    rating: null,
+    feel: '',
     comment: '',
     image_url: '',
   });
@@ -52,6 +54,8 @@ export default function AddNoteModal({ place, onClose }) {
       outlets_available: note.outlets_available,
       parking_available: note.parking_available,
       food_available: note.food_available,
+      rating: note.rating,
+      feel: note.feel || null,
       comment: note.comment || null,
       image_url: note.image_url || null,
     };
@@ -95,6 +99,35 @@ export default function AddNoteModal({ place, onClose }) {
               <AmenityToggle label="Food" value={note.food_available} onToggle={v => setField('food_available', v)} />
 
               <hr />
+              <div className="mb-3">
+                <label className="form-label">Rating</label>
+                <div className="d-flex gap-1">
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <button
+                      key={star}
+                      type="button"
+                      className="btn btn-link p-0 lh-1 fs-5"
+                      style={{ color: note.rating >= star ? '#ffc107' : '#dee2e6' }}
+                      onClick={() => setField('rating', note.rating === star ? null : star)}
+                      aria-label={`${star} star${star !== 1 ? 's' : ''}`}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="mb-3">
+                <label className="form-label">
+                  Vibe <span className="text-muted fw-normal">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="e.g. cozy, busy, quiet…"
+                  value={note.feel}
+                  onChange={e => setField('feel', e.target.value)}
+                />
+              </div>
               <div className="mb-3">
                 <label className="form-label">Comment</label>
                 <textarea

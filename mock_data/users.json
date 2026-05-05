@@ -22,6 +22,7 @@
       "wifi_required": false,
       "outlets_required": false,
       "parking_required": false,
+      "food_required": false,
       "preferred_types": ["cafe", "library"]
     },
     "online_status": {
@@ -55,6 +56,7 @@
       "wifi_required": true,
       "outlets_required": true,
       "parking_required": false,
+      "food_required": false,
       "preferred_types": ["study_space", "library"]
     },
     "online_status": {
@@ -88,6 +90,7 @@
       "wifi_required": true,
       "outlets_required": false,
       "parking_required": false,
+      "food_required": true,
       "preferred_types": ["cafe"]
     },
     "online_status": {
@@ -120,6 +123,7 @@
       "wifi_required": false,
       "outlets_required": false,
       "parking_required": true,
+      "food_required": false,
       "preferred_types": ["library", "cafe"]
     },
     "online_status": {
@@ -152,6 +156,7 @@
       "wifi_required": true,
       "outlets_required": true,
       "parking_required": false,
+      "food_required": false,
       "preferred_types": ["study_space", "library"]
     },
     "online_status": {
@@ -185,6 +190,7 @@
       "wifi_required": true,
       "outlets_required": false,
       "parking_required": false,
+      "food_required": true,
       "preferred_types": ["cafe", "student_union"]
     },
     "online_status": {
