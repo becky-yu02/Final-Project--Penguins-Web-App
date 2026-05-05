@@ -8,7 +8,6 @@ from app.models.location import Location
 from app.models.gathering import Gathering
 from app.models.friendship import Friendship
 
-
 client = AsyncIOMotorClient(settings.mongodb_url)
 database = client[settings.mongodb_db_name]
 
