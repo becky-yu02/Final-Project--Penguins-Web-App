@@ -46,7 +46,9 @@ class DependencyAndAuthTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_require_admin_rejects_basic_user(self):
         with self.assertRaises(HTTPException) as context:
-            require_admin(current_user=SimpleNamespace(id="user-1", role=UserRole.BASIC))
+            require_admin(
+                current_user=SimpleNamespace(id="user-1", role=UserRole.BASIC)
+            )
 
         self.assertEqual(context.exception.status_code, 403)
 
@@ -94,7 +96,9 @@ class RouteBehaviorTests(unittest.IsolatedAsyncioTestCase):
         )
         payload = GatheringUpdateRequest(title="New title")
 
-        with patch("app.routers.gatherings.Gathering.get", AsyncMock(return_value=gathering)):
+        with patch(
+            "app.routers.gatherings.Gathering.get", AsyncMock(return_value=gathering)
+        ):
             with self.assertRaises(HTTPException) as context:
                 await update_gathering(
                     gathering_id="gathering-1",
