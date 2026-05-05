@@ -4,6 +4,7 @@ import GatheringCard from '../components/GatheringCard';
 import PlaceCard from '../components/PlaceCard';
 import MapView from '../components/MapView';
 import { useUser } from '../context/UserContext';
+import { isCurrentOrUpcoming } from '../utils/gathering_time_check';
 
 const API = 'http://127.0.0.1:8000';
 
@@ -14,12 +15,20 @@ export default function Home() {
   const [selectedGatheringId, setSelectedGatheringId] = useState(null);
   const [places, setPlaces] = useState([]);
   const [gatherings, setGatherings] = useState([]);
+  const [userLocation, setUserLocation] = useState(null);
   const cardRefs = useRef({});
+
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      pos => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => {},
+    );
+  }, []);
 
   useEffect(() => {
     fetch(`${API}/penguins/places`)
       .then(r => r.json())
-      .then(setPlaces)
+      .then(data => setPlaces(data.map(p => ({ ...p, id: p.id ?? p._id }))))
       .catch(() => {});
     fetch(`${API}/penguins/gatherings`)
       .then(r => r.json())
@@ -27,8 +36,8 @@ export default function Home() {
       .catch(() => {});
   }, []);
 
-  const active = gatherings.filter(g => g.status === 'active');
-  const scheduled = gatherings.filter(g => g.status === 'scheduled');
+  const active = gatherings.filter(g => g.status === 'active' && isCurrentOrUpcoming(g));
+  const scheduled = gatherings.filter(g => g.status === 'scheduled' && isCurrentOrUpcoming(g));
   const allGatherings = [...active, ...scheduled];
 
   const favoritePlaces = places.filter(p =>
@@ -152,7 +161,7 @@ export default function Home() {
                       onClick={() => setSelectedPlaceId(p.id === selectedPlaceId ? null : p.id)}
                       style={{ cursor: 'pointer' }}
                     >
-                      <PlaceCard place={p} gatherings={gatherings} highlighted={p.id === selectedPlaceId} />
+                      <PlaceCard place={p} gatherings={gatherings} highlighted={p.id === selectedPlaceId} userLocation={userLocation} />
                     </div>
                   ))}
                 </div>

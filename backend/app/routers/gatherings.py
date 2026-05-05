@@ -161,6 +161,23 @@ async def update_gathering(
     return gathering
 
 
+@router.delete("/{gathering_id}")
+async def delete_gathering(
+    gathering_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    gathering = await Gathering.get(gathering_id)
+    if not gathering:
+        raise HTTPException(status_code=404, detail="Gathering not found")
+
+    if gathering.host_user_id != str(current_user.id):
+        raise HTTPException(status_code=403, detail="Only the host can delete this gathering")
+
+    await gathering.delete()
+    logger.info("Deleted gathering gathering_id=%s actor_user_id=%s", gathering_id, current_user.id)
+    return {"message": "Gathering deleted"}
+
+
 @router.post("/{gathering_id}/join")
 async def join_gathering(
     gathering_id: str,

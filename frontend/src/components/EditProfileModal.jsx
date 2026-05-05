@@ -41,7 +41,7 @@ export default function EditProfileModal({ onClose }) {
           });
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [token]);
 
   async function handleSave() {
@@ -140,7 +140,7 @@ export default function EditProfileModal({ onClose }) {
               </div>
               <div className="mb-3">
                 <label className="form-label">Max Distance (miles)</label>
-                <input type="number" className="form-control" min="5" step="1"
+                <input type="number" className="form-control" min="1" step="1"
                   value={preferences.max_distance_miles}
                   onChange={e => setPreferences({ ...preferences, max_distance_miles: e.target.value })} />
               </div>

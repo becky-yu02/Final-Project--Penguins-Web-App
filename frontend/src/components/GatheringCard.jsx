@@ -1,7 +1,10 @@
 import { useRef, useState, useEffect, useLayoutEffect } from 'react';
 import AmenitiesRow from './AmenitiesRow';
+import PlaceCard from './PlaceCard';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
+import loadingSvg from '../assets/loading.svg';
+import InfoIcon from '../assets/info.svg?react';
 
 const API = 'http://127.0.0.1:8000';
 
@@ -25,7 +28,7 @@ function formatDate(isoStr) {
   });
 }
 
-export default function GatheringCard({ gathering, place, placeSummary, highlighted = false }) {
+export default function GatheringCard({ gathering, place, placeSummary, highlighted = false, onEdit, onDelete }) {
   const user = useUser();
   const { token } = useAuth();
   const resolvedSummary = place?.community_summary ?? placeSummary;
@@ -33,6 +36,7 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
 
   const [organizer, setOrganizer] = useState(null);
   const [participantDetails, setParticipantDetails] = useState([]);
+  const [loadingDetails, setLoadingDetails] = useState(false);
   const [isGoing, setIsGoing] = useState(false);
   const [joining, setJoining] = useState(false);
   const [expandHeight, setExpandHeight] = useState(0);
@@ -53,29 +57,51 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
     if (!highlighted || !token) {
       setOrganizer(null);
       setParticipantDetails([]);
+      setLoadingDetails(false);
       return;
     }
     let cancelled = false;
+    setLoadingDetails(true);
 
-    fetch(`${API}/penguins/users/${gathering.host_user_id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (!cancelled && data) setOrganizer(data); });
-
-    Promise.all(
-      (gathering.participant_user_ids ?? []).map(id =>
-        fetch(`${API}/penguins/users/${id}`, { headers: { Authorization: `Bearer ${token}` } })
-          .then(r => r.ok ? r.json() : null)
-      )
-    ).then(results => {
-      if (!cancelled) setParticipantDetails(results.filter(Boolean));
+    Promise.all([
+      fetch(`${API}/penguins/users/${gathering.host_user_id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(r => r.ok ? r.json() : null),
+      Promise.all(
+        (gathering.participant_user_ids ?? []).map(id =>
+          fetch(`${API}/penguins/users/${id}`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.ok ? r.json() : null)
+        )
+      ),
+    ]).then(([organizerData, participantResults]) => {
+      if (cancelled) return;
+      if (organizerData) setOrganizer(organizerData);
+      setParticipantDetails(participantResults.filter(Boolean));
+      setLoadingDetails(false);
     });
 
     return () => { cancelled = true; };
   }, [highlighted]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [leaving, setLeaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showPlaceModal, setShowPlaceModal] = useState(false);
+
+  const isHost = user?.id === gathering.host_user_id;
+
+  async function handleDelete() {
+    if (!token || deleting) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`${API}/penguins/gatherings/${gathering._id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) onDelete?.(gathering._id);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   async function handleJoin() {
     if (!token || joining || isGoing) return;
@@ -113,7 +139,7 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
     }
   }
 
-  const canJoin = user && !isGoing &&
+  const canJoin = user && !isHost && !isGoing &&
     gathering.status !== 'ended' && gathering.status !== 'cancelled';
 
   return (
@@ -131,6 +157,15 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
           <p className={`card-subtitle small mb-0 mt-0${highlighted ? ' text-primary fw-semibold' : ' text-muted'}`}>
             {place?.name}
           </p>
+          {place && (
+            <button
+              className="btn btn-link p-0 border-0 lh-1 flex-shrink-0"
+              title="View place details"
+              onClick={e => { e.stopPropagation(); setShowPlaceModal(true); }}
+            >
+              <InfoIcon width={16} height={16} style={{ color: '#6c757d' }} />
+            </button>
+          )}
           {resolvedSummary && <AmenitiesRow summary={resolvedSummary} iconSize={16} />}
         </div>
         {gathering.description && (
@@ -152,21 +187,29 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
         }}
       >
         <div ref={expandRef} className="card-body border-top pt-2">
-          {organizer && (
-            <p className="small mb-2">
-              <span className="fw-semibold">Organizer:</span>{' '}
-              {organizer.first_name} {organizer.last_name}{' '}
-              <span className="text-muted">@{organizer.username}</span>
-            </p>
-          )}
-
-          {participantDetails.length > 0 && (
-            <div className="mb-2">
-              <p className="small fw-semibold mb-1">Going</p>
-              {participantDetails.map(u => (
-                <p key={u.id} className="small mb-0 text-muted">@{u.username}</p>
-              ))}
+          {loadingDetails ? (
+            <div className="d-flex justify-content-center py-2">
+              <img src={loadingSvg} alt="Loading…" style={{ width: 40, height: 40 }} />
             </div>
+          ) : (
+            <>
+              {organizer && (
+                <p className="small mb-2">
+                  <span className="fw-semibold">Organizer:</span>{' '}
+                  {organizer.first_name} {organizer.last_name}{' '}
+                  <span className="text-muted">@{organizer.username}</span>
+                </p>
+              )}
+
+              {participantDetails.length > 0 && (
+                <div className="mb-2">
+                  <p className="small fw-semibold mb-1">Going</p>
+                  {participantDetails.map(u => (
+                    <p key={u.id} className="small mb-0 text-muted">@{u.username}</p>
+                  ))}
+                </div>
+              )}
+            </>
           )}
 
           {canJoin && (
@@ -178,7 +221,7 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
               {joining ? 'Joining…' : "I'm going"}
             </button>
           )}
-          {isGoing && (
+          {!isHost && isGoing && (
             <div className="d-flex align-items-center gap-2 mt-1">
               <span className="small text-success fw-semibold">✓ You're going</span>
               <button
@@ -189,6 +232,33 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
                 {leaving ? 'Leaving…' : 'Nevermind'}
               </button>
             </div>
+          )}
+          {isHost && (
+            <div className="d-flex gap-2 mt-2">
+              {onEdit && (
+                <button
+                  className="btn btn-sm btn-outline-primary"
+                  onClick={e => { e.stopPropagation(); onEdit(); }}
+                >
+                  Edit
+                </button>
+              )}
+              <button
+                className="btn btn-sm btn-outline-danger"
+                onClick={e => { e.stopPropagation(); handleDelete(); }}
+                disabled={deleting}
+              >
+                {deleting ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          )}
+          {!isHost && onEdit && (
+            <button
+              className="btn btn-sm btn-outline-primary mt-2"
+              onClick={e => { e.stopPropagation(); onEdit(); }}
+            >
+              Edit Gathering
+            </button>
           )}
         </div>
       </div>
@@ -202,6 +272,36 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
           {gathering.visibility}
         </span>
       </div>
+
+      {showPlaceModal && place && (
+        <>
+          <div className="modal-backdrop fade show" onClick={() => setShowPlaceModal(false)} />
+          <div
+            className="modal fade show d-block"
+            tabIndex="-1"
+            onClick={() => setShowPlaceModal(false)}
+          >
+            <div
+              className="modal-dialog modal-dialog-centered"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="modal-content">
+                <div className="modal-header py-2">
+                  <h6 className="modal-title mb-0">Place Details</h6>
+                  <button
+                    type="button"
+                    className="btn-close"
+                    onClick={() => setShowPlaceModal(false)}
+                  />
+                </div>
+                <div className="modal-body p-2" onClick={e => e.stopPropagation()}>
+                  <PlaceCard place={place} gatherings={[]} highlighted={true} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

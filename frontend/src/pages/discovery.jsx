@@ -3,6 +3,8 @@ import Navbar from '../components/Navbar';
 import PlaceCard from '../components/PlaceCard';
 import MapView from '../components/MapView';
 import { useAuth } from '../context/AuthContext';
+import { useUser } from '../context/UserContext';
+import { calculateMatchRating } from '../utils/match';
 
 const API = 'http://127.0.0.1:8000';
 
@@ -19,13 +21,16 @@ function hasNoPreferences(prefs) {
 
 export default function Discovery() {
   const { token } = useAuth();
+  const user = useUser();
   const [search, setSearch] = useState('');
   const [selectedType, setSelectedType] = useState('');
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [selectedPlaceId, setSelectedPlaceId] = useState(null);
   const [showPrefsModal, setShowPrefsModal] = useState(false);
   const [userId, setUserId] = useState(null);
   const [places, setPlaces] = useState([]);
   const [gatherings, setGatherings] = useState([]);
+  const [userLocation, setUserLocation] = useState(null);
   const [prefs, setPrefs] = useState({
     preferred_types: [],
     max_distance_miles: '',
@@ -36,6 +41,10 @@ export default function Discovery() {
   const cardRefs = useRef({});
 
   useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      pos => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => {},
+    );
     fetch(`${API}/penguins/places`)
       .then(r => r.json())
       .then(data => setPlaces(data.map(p => ({ ...p, id: p.id ?? p._id }))))
@@ -96,13 +105,20 @@ export default function Discovery() {
     }));
   }
 
-  const filtered = places.filter(p => {
-    const matchSearch =
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.address.toLowerCase().includes(search.toLowerCase());
-    const matchType = !selectedType || p.type_of_place === selectedType;
-    return matchSearch && matchType;
-  });
+  const filtered = places
+    .filter(p => {
+      const matchSearch =
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        p.address.toLowerCase().includes(search.toLowerCase());
+      const matchType = !selectedType || p.type_of_place === selectedType;
+      const matchFavorites = !showFavoritesOnly || user?.favorite_places?.includes(p.id);
+      return matchSearch && matchType && matchFavorites;
+    })
+    .sort((a, b) => {
+      const rA = calculateMatchRating(a, user?.preferences) ?? -1;
+      const rB = calculateMatchRating(b, user?.preferences) ?? -1;
+      return rB - rA;
+    });
 
   useEffect(() => {
     if (!selectedPlaceId) return;
@@ -136,7 +152,7 @@ export default function Discovery() {
             />
           </div>
 
-          <div className="mb-4 d-flex gap-2 flex-wrap">
+          <div className="mb-4 d-flex gap-2 flex-wrap align-items-center">
             <button
               className={`btn btn-sm ${!selectedType ? 'btn-dark' : 'btn-outline-secondary'}`}
               onClick={() => setSelectedType('')}
@@ -152,6 +168,13 @@ export default function Discovery() {
                 {type}
               </button>
             ))}
+            <div className="vr mx-1" />
+            <button
+              className={`btn btn-sm ${showFavoritesOnly ? 'btn-warning' : 'btn-outline-warning'}`}
+              onClick={() => setShowFavoritesOnly(prev => !prev)}
+            >
+              ★ Favorites
+            </button>
           </div>
 
           {filtered.length === 0 ? (
@@ -166,7 +189,7 @@ export default function Discovery() {
                   onClick={() => setSelectedPlaceId(place.id === selectedPlaceId ? null : place.id)}
                   style={{ cursor: 'pointer' }}
                 >
-                  <PlaceCard place={place} gatherings={gatherings} highlighted={place.id === selectedPlaceId} />
+                  <PlaceCard place={place} gatherings={gatherings} highlighted={place.id === selectedPlaceId} userLocation={userLocation} />
                 </div>
               ))}
             </div>

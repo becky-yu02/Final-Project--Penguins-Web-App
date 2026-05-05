@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import vibeOptions from '../utils/vibe_options.json';
 
 const API = 'http://127.0.0.1:8000';
 
@@ -82,7 +83,7 @@ export default function AddNoteModal({ place, onClose }) {
   }
 
   return (
-    <>
+    <div onClick={e => e.stopPropagation()}>
       <div className="modal-backdrop fade show" onClick={onClose} />
       <div className="modal fade show d-block" tabIndex="-1">
         <div className="modal-dialog">
@@ -120,13 +121,28 @@ export default function AddNoteModal({ place, onClose }) {
                 <label className="form-label">
                   Vibe <span className="text-muted fw-normal">(optional)</span>
                 </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="e.g. cozy, busy, quiet…"
-                  value={note.feel}
-                  onChange={e => setField('feel', e.target.value)}
-                />
+                <div className="d-flex flex-wrap gap-2">
+                  {vibeOptions.vibes.map(({ label, color }) => {
+                    const selected = note.feel === label;
+                    return (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => setField('feel', selected ? '' : label)}
+                        style={{
+                          backgroundColor: selected ? color : 'transparent',
+                          borderColor: color,
+                          color: selected ? '#fff' : color,
+                          borderWidth: 1,
+                          borderStyle: 'solid',
+                        }}
+                        className="btn btn-sm"
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
               <div className="mb-3">
                 <label className="form-label">Comment</label>
@@ -172,6 +188,6 @@ export default function AddNoteModal({ place, onClose }) {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

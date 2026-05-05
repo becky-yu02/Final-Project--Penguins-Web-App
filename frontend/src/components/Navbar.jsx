@@ -21,7 +21,7 @@ export default function Navbar() {
         setIsOnline(user.online_status?.is_online ?? false);
         setBroadcasting(user.online_status?.broadcasting ?? false);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [token]);
 
   async function toggle(field, value) {
@@ -49,6 +49,11 @@ export default function Navbar() {
           <li className="nav-item">
             <NavLink className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')} to="/discovery">
               Discovery
+            </NavLink>
+          </li>
+          <li className="nav-item">
+            <NavLink className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')} to="/gatherings">
+              Gatherings
             </NavLink>
           </li>
         </ul>

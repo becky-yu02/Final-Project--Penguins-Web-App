@@ -1,8 +1,27 @@
 import { useEffect, useRef } from 'react';
 
 const IOWA_CITY = { lat: 41.6611, lng: -91.5355 };
-const ICON_DEFAULT = null;
-const ICON_SELECTED = 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png';
+
+// Google Maps dot icons are 32×32px source images.
+// Default pin is 25% smaller (24px), selected is 25% larger (40px).
+const SIZE_DEFAULT = 24;
+const SIZE_SELECTED = 40;
+
+function iconDefault() {
+  return {
+    url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png',
+    scaledSize: new window.google.maps.Size(SIZE_DEFAULT, SIZE_DEFAULT),
+    anchor: new window.google.maps.Point(SIZE_DEFAULT / 2, SIZE_DEFAULT / 2),
+  };
+}
+
+function iconSelected() {
+  return {
+    url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+    scaledSize: new window.google.maps.Size(SIZE_SELECTED, SIZE_SELECTED),
+    anchor: new window.google.maps.Point(SIZE_SELECTED / 2, SIZE_SELECTED / 2),
+  };
+}
 
 function loadScript(apiKey) {
   if (document.getElementById('gmap-script')) return;
@@ -24,7 +43,7 @@ function placeMarkers(map, places, onMarkerClick, markersRef, selectedPlaceId) {
       map,
       position: { lat: p.coordinates.lat, lng: p.coordinates.lng },
       title: p.name,
-      icon: p.id === selectedPlaceId ? ICON_SELECTED : ICON_DEFAULT,
+      icon: p.id === selectedPlaceId ? iconSelected() : iconDefault(),
     });
     marker.addListener('click', () => onMarkerClick?.(p.id));
     markersRef.current[p.id] = marker;
@@ -70,11 +89,16 @@ export default function MapView({ places = [], onMarkerClick, selectedPlaceId })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [places]);
 
-  // Update marker icons when selection changes without replacing markers
+  // Update marker icons and pan/zoom when selection changes
   useEffect(() => {
     Object.entries(markersRef.current).forEach(([placeId, marker]) => {
-      marker.setIcon(placeId === selectedPlaceId ? ICON_SELECTED : ICON_DEFAULT);
+      marker.setIcon(placeId === selectedPlaceId ? iconSelected() : iconDefault());
     });
+    if (selectedPlaceId && markersRef.current[selectedPlaceId]) {
+      const pos = markersRef.current[selectedPlaceId].getPosition();
+      mapRef.current.panTo(pos);
+      mapRef.current.setZoom(17);
+    }
   }, [selectedPlaceId]);
 
   return <div ref={divRef} style={{ height: '100%', width: '100%' }} />;

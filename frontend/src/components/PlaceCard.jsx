@@ -3,13 +3,24 @@ import AmenitiesRow from './AmenitiesRow';
 import AddNoteModal from './AddNoteModal';
 import { useUser, useToggleFavorite } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
-import { calculateMatchRating } from '../scripts/match';
+import { calculateMatchRating } from '../utils/match';
+import { isCurrentOrUpcoming } from '../utils/gathering_time_check';
 import FriendIcon from '../assets/friend.svg?react';
 import FavIcon from '../assets/fav.svg?react';
 import NotFavIcon from '../assets/not_fav.svg?react';
 import HeartBrokenIcon from '../assets/heart_broken.svg?react';
+import WalkIcon from '../assets/walk.svg?react';
 
 const API = 'http://127.0.0.1:8000';
+
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 function MatchBadge({ pct }) {
   if (pct === null) return null;
@@ -38,7 +49,7 @@ function formatDate(isoStr) {
   });
 }
 
-export default function PlaceCard({ place, gatherings = [], highlighted = false }) {
+export default function PlaceCard({ place, gatherings = [], highlighted = false, userLocation = null }) {
   const user = useUser();
   const { token } = useAuth();
   const toggleFavorite = useToggleFavorite();
@@ -69,7 +80,7 @@ export default function PlaceCard({ place, gatherings = [], highlighted = false 
 
   const placeGatherings = gatherings.filter(g => g.place_id === place.id);
   const relevantGatherings = placeGatherings.filter(
-    g => g.status === 'active' || g.status === 'scheduled'
+    g => (g.status === 'active' || g.status === 'scheduled') && isCurrentOrUpcoming(g)
   );
 
   // Friends whose IDs appear in active gathering participant lists at this place
@@ -100,6 +111,12 @@ export default function PlaceCard({ place, gatherings = [], highlighted = false 
 
   const rating = place.community_summary?.overall_rating;
   const vibe = place.community_summary?.overall_feel;
+
+  let walkMins = null;
+  if (userLocation && place.coordinates) {
+    const km = haversineKm(userLocation.lat, userLocation.lng, place.coordinates.lat, place.coordinates.lng);
+    walkMins = Math.max(1, Math.round(km / 5 * 60)); // 5 km/h
+  }
 
   return (
     <div className={`card${highlighted ? ' border-primary border-2 shadow-sm' : ''}`}>
@@ -155,9 +172,19 @@ export default function PlaceCard({ place, gatherings = [], highlighted = false 
           </div>
         </div>
 
-        {/* Row 3: Vibe */}
-        {vibe && (
-          <p className="card-text small text-muted mb-0 text-capitalize">{vibe}</p>
+        {/* Row 3: Vibe left, walk time right */}
+        {(vibe || walkMins !== null) && (
+          <div className="d-flex justify-content-between align-items-center">
+            {vibe
+              ? <p className="card-text small text-muted mb-0 text-capitalize">{vibe}</p>
+              : <span />}
+            {walkMins !== null && (
+              <div className="d-flex align-items-center gap-1 text-muted small flex-shrink-0 ms-2">
+                <WalkIcon width={16} height={16} />
+                <span>{walkMins} min</span>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
