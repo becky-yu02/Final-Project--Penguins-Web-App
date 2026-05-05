@@ -38,7 +38,7 @@ export default function Discovery() {
   useEffect(() => {
     fetch(`${API}/penguins/places`)
       .then(r => r.json())
-      .then(setPlaces)
+      .then(data => setPlaces(data.map(p => ({ ...p, id: p.id ?? p._id }))))
       .catch(() => {});
     fetch(`${API}/penguins/gatherings`)
       .then(r => r.json())

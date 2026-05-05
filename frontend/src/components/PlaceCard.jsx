@@ -1,5 +1,6 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useLayoutEffect } from 'react';
 import AmenitiesRow from './AmenitiesRow';
+import AddNoteModal from './AddNoteModal';
 import { useUser, useToggleFavorite } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { calculateMatchRating } from '../scripts/match';
@@ -13,7 +14,14 @@ const API = 'http://127.0.0.1:8000';
 function MatchBadge({ pct }) {
   if (pct === null) return null;
   const bg = pct >= 80 ? 'bg-success' : pct >= 50 ? 'bg-warning text-dark' : 'bg-danger';
-  return <span className={`badge ${bg}`}>{pct}% match</span>;
+  return (
+    <span
+      className={`badge ${bg}`}
+      title="How well this place matches your saved preferences"
+    >
+      {pct}% match
+    </span>
+  );
 }
 
 const STATUS_BADGE = {
@@ -38,7 +46,26 @@ export default function PlaceCard({ place, gatherings = [], highlighted = false 
   const isFavorited = user?.favorite_places?.includes(place.id) ?? false;
   const [heartHovered, setHeartHovered] = useState(false);
   const [friendDetails, setFriendDetails] = useState([]);
+  const [showNoteModal, setShowNoteModal] = useState(false);
   const expandRef = useRef(null);
+  const titleRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const el = titleRef.current;
+    if (!el) return;
+    function fit() {
+      el.style.fontSize = '';
+      let size = parseFloat(getComputedStyle(el).fontSize);
+      while (el.scrollWidth > el.offsetWidth && size > 10) {
+        size -= 0.5;
+        el.style.fontSize = `${size}px`;
+      }
+    }
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [place.name]);
 
   const placeGatherings = gatherings.filter(g => g.place_id === place.id);
   const relevantGatherings = placeGatherings.filter(
@@ -79,27 +106,39 @@ export default function PlaceCard({ place, gatherings = [], highlighted = false 
       <div className="card-body pb-2">
         {/* Row 1: Heart + Name left, match % + rating right */}
         <div className="d-flex justify-content-between align-items-center mb-1">
-          <div className="d-flex align-items-center gap-2">
+          <div className="d-flex align-items-center gap-2" style={{ minWidth: 0, flex: 1 }}>
             <button
-              className="btn btn-link p-0 border-0 lh-1"
+              className="btn btn-link p-0 border-0 lh-1 flex-shrink-0"
               onClick={e => { e.stopPropagation(); toggleFavorite(place.id); }}
               onMouseEnter={() => setHeartHovered(true)}
               onMouseLeave={() => setHeartHovered(false)}
               aria-label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+              title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
             >
               {isFavorited
                 ? (heartHovered
-                    ? <HeartBrokenIcon width={20} height={20} style={{ color: '#dc3545' }} />
-                    : <FavIcon width={20} height={20} style={{ color: '#dc3545' }} />)
+                  ? <HeartBrokenIcon width={20} height={20} style={{ color: '#dc3545' }} />
+                  : <FavIcon width={20} height={20} style={{ color: '#dc3545' }} />)
                 : <NotFavIcon width={20} height={20} style={{ color: '#adb5bd' }} />
               }
             </button>
-            <h5 className="card-title mb-0">{place.name}</h5>
+            <h5
+              ref={titleRef}
+              className="card-title mb-0"
+              style={{ whiteSpace: 'nowrap', minWidth: 0 }}
+            >
+              {place.name}
+            </h5>
           </div>
           <div className="d-flex gap-2 align-items-center flex-shrink-0 ms-2">
             <MatchBadge pct={matchPct} />
             {rating != null && (
-              <span className="small fw-semibold text-nowrap">{rating.toFixed(1)} ★</span>
+              <span
+                className="small fw-semibold text-nowrap"
+                title="Community rating based on visitor notes"
+              >
+                {rating.toFixed(1)} ★
+              </span>
             )}
           </div>
         </div>
@@ -107,7 +146,10 @@ export default function PlaceCard({ place, gatherings = [], highlighted = false 
         {/* Row 2: Amenities left, friends count right */}
         <div className="d-flex justify-content-between align-items-center mb-1">
           <AmenitiesRow summary={place.community_summary} iconSize={20} />
-          <div className="d-flex align-items-center gap-1 text-muted small flex-shrink-0">
+          <div
+            className="d-flex align-items-center gap-1 text-muted small flex-shrink-0"
+            title={friendIdsHere.length === 1 ? '1 friend is here now' : `${friendIdsHere.length} friends are here now`}
+          >
             <FriendIcon width={16} height={16} style={{ color: '#6c757d' }} />
             <span>{friendIdsHere.length}</span>
           </div>
@@ -168,8 +210,21 @@ export default function PlaceCard({ place, gatherings = [], highlighted = false 
           {friendIdsHere.length === 0 && relevantGatherings.length === 0 && (
             <p className="small text-muted mb-0">No friends here and no upcoming gatherings.</p>
           )}
+
+          {user && (
+            <button
+              className="btn btn-sm btn-outline-secondary mt-3"
+              onClick={e => { e.stopPropagation(); setShowNoteModal(true); }}
+            >
+              Add Community Note
+            </button>
+          )}
         </div>
       </div>
+
+      {showNoteModal && (
+        <AddNoteModal place={place} onClose={() => setShowNoteModal(false)} />
+      )}
     </div>
   );
 }

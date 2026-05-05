@@ -8,7 +8,7 @@ export default function EditProfileModal({ onClose }) {
   const { token } = useAuth();
   const [account, setAccount] = useState({ first_name: '', last_name: '', profile_image_url: '' });
   const [preferences, setPreferences] = useState({
-    wifi_required: false, outlets_required: false, parking_required: false,
+    wifi_required: false, outlets_required: false, parking_required: false, food_required: false,
     max_distance_miles: '', preferred_types: [],
   });
   const [status, setStatus] = useState({ is_online: false, broadcasting: false });
@@ -29,6 +29,7 @@ export default function EditProfileModal({ onClose }) {
             wifi_required: user.preferences.wifi_required ?? false,
             outlets_required: user.preferences.outlets_required ?? false,
             parking_required: user.preferences.parking_required ?? false,
+            food_required: user.preferences.food_required ?? false,
             max_distance_miles: user.preferences.max_distance_miles ?? '',
             preferred_types: user.preferences.preferred_types ?? [],
           });
@@ -129,6 +130,12 @@ export default function EditProfileModal({ onClose }) {
                     checked={preferences.parking_required}
                     onChange={e => setPreferences({ ...preferences, parking_required: e.target.checked })} />
                   <label className="form-check-label" htmlFor="ep_parking">Parking required</label>
+                </div>
+                <div className="form-check">
+                  <input type="checkbox" className="form-check-input" id="ep_food"
+                    checked={preferences.food_required}
+                    onChange={e => setPreferences({ ...preferences, food_required: e.target.checked })} />
+                  <label className="form-check-label" htmlFor="ep_food">Food required</label>
                 </div>
               </div>
               <div className="mb-3">

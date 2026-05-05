@@ -29,6 +29,11 @@ export function calculateMatchRating(place, userPreferences) {
     if (summary?.parking_available) earnedWeight += 1;
   }
 
+  if (userPreferences.food_required != null && userPreferences.food_required) {
+    totalWeight += 1;
+    if (summary?.food_available) earnedWeight += 1;
+  }
+
   if (totalWeight === 0) return null;
 
   return Math.round((earnedWeight / totalWeight) * 100);

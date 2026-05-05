@@ -11,6 +11,7 @@ export default function Home() {
   const user = useUser();
   const [view, setView] = useState('gatherings');
   const [selectedPlaceId, setSelectedPlaceId] = useState(null);
+  const [selectedGatheringId, setSelectedGatheringId] = useState(null);
   const [places, setPlaces] = useState([]);
   const [gatherings, setGatherings] = useState([]);
   const cardRefs = useRef({});
@@ -43,6 +44,7 @@ export default function Home() {
   function switchView(next) {
     setView(next);
     setSelectedPlaceId(null);
+    setSelectedGatheringId(null);
   }
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export default function Home() {
     let matchId = null;
     if (view === 'gatherings') {
       const match = allGatherings.find(g => g.place_id === selectedPlaceId);
-      matchId = match?.id;
+      matchId = match?._id;
     } else {
       matchId = selectedPlaceId;
     }
@@ -63,15 +65,19 @@ export default function Home() {
     return gatheringsList.map(g => (
       <div
         className="col"
-        key={g.id}
-        ref={el => { cardRefs.current[g.id] = el; }}
-        onClick={() => setSelectedPlaceId(g.place_id === selectedPlaceId ? null : g.place_id)}
+        key={g._id}
+        ref={el => { cardRefs.current[g._id] = el; }}
+        onClick={() => {
+            const opening = g._id !== selectedGatheringId;
+            setSelectedGatheringId(opening ? g._id : null);
+            setSelectedPlaceId(opening ? g.place_id : null);
+          }}
         style={{ cursor: 'pointer' }}
       >
         <GatheringCard
           gathering={g}
           place={places.find(p => p.id === g.place_id)}
-          highlighted={g.place_id === selectedPlaceId}
+          highlighted={g._id === selectedGatheringId}
         />
       </div>
     ));
@@ -112,7 +118,7 @@ export default function Home() {
                 {active.length === 0 ? (
                   <p className="text-muted">No active gatherings right now.</p>
                 ) : (
-                  <div className="row row-cols-1 row-cols-xl-2 g-3">
+                  <div className="row row-cols-1 row-cols-xl-2 g-3 align-items-start">
                     {renderGatherings(active)}
                   </div>
                 )}
@@ -123,7 +129,7 @@ export default function Home() {
                 {scheduled.length === 0 ? (
                   <p className="text-muted">No upcoming gatherings.</p>
                 ) : (
-                  <div className="row row-cols-1 row-cols-xl-2 g-3">
+                  <div className="row row-cols-1 row-cols-xl-2 g-3 align-items-start">
                     {renderGatherings(scheduled)}
                   </div>
                 )}

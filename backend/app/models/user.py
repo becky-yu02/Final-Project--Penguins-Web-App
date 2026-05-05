@@ -11,6 +11,7 @@ class UserPreferences(BaseModel):
     wifi_required: bool = False
     outlets_required: bool = False
     parking_required: bool = False
+    food_required: bool = False
     preferred_types: List[str] = Field(default_factory=list)
 
 
