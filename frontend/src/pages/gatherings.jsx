@@ -465,7 +465,7 @@ export default function Gatherings() {
         </div>
 
         <div className="row g-4 align-items-start">
-          {/* Left column — My Gatherings + Coming Up */}
+          {/* Left column — My Gatherings + Active Now */}
           <div className="col-12 col-lg-8">
             {myGatherings.length > 0 && (
               <section className="mb-5">
@@ -477,27 +477,27 @@ export default function Gatherings() {
             )}
 
             <section className="mb-5">
-              <h5 className="mb-3">Coming Up</h5>
-              {scheduled.length === 0 ? (
-                <p className="text-muted">No upcoming gatherings.</p>
+              <h5 className="mb-3">Active Now</h5>
+              {active.length === 0 ? (
+                <p className="text-muted">No active gatherings right now.</p>
               ) : (
                 <div className="row row-cols-1 row-cols-md-2 g-3 align-items-start">
-                  {renderGatherings(scheduled)}
+                  {renderGatherings(active)}
                 </div>
               )}
             </section>
           </div>
 
-          {/* Right column — Active Now + Cancelled */}
+          {/* Right column — Coming Up + Cancelled */}
           <div className="col-12 col-lg-4">
             <div className="sticky-top" style={{ top: '1rem' }}>
               <section className="mb-5">
-                <h5 className="mb-3">Active Now</h5>
-                {active.length === 0 ? (
-                  <p className="text-muted">No active gatherings right now.</p>
+                <h5 className="mb-3">Coming Up</h5>
+                {scheduled.length === 0 ? (
+                  <p className="text-muted">No upcoming gatherings.</p>
                 ) : (
                   <div className="row row-cols-1 g-3 align-items-start">
-                    {renderGatherings(active)}
+                    {renderGatherings(scheduled)}
                   </div>
                 )}
               </section>

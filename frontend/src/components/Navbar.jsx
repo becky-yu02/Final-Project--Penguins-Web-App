@@ -1,6 +1,7 @@
 import { Link, NavLink } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import BroadcastModal from './BroadcastModal';
 
 const API = 'http://127.0.0.1:8000';
 
@@ -9,6 +10,7 @@ export default function Navbar() {
   const [isOnline, setIsOnline] = useState(false);
   const [broadcasting, setBroadcasting] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showBroadcastModal, setShowBroadcastModal] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -38,7 +40,40 @@ export default function Navbar() {
     if (field === 'broadcasting') setBroadcasting(value);
   }
 
+  function handleBroadcastToggle(checked) {
+    if (checked) {
+      setShowBroadcastModal(true);
+    } else {
+      const update = { online_status: { is_online: isOnline, broadcasting: false, current_gathering_id: null } };
+      fetch(`${API}/penguins/users/me`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(update),
+      }).then(r => { if (r.ok) setBroadcasting(false); });
+    }
+  }
+
+  async function handleBroadcastConfirm(gatheringId) {
+    const update = { online_status: { is_online: isOnline, broadcasting: true, current_gathering_id: gatheringId } };
+    const res = await fetch(`${API}/penguins/users/me`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(update),
+    });
+    if (res.ok) {
+      setBroadcasting(true);
+      setShowBroadcastModal(false);
+    }
+  }
+
   return (
+    <>
+    {showBroadcastModal && (
+      <BroadcastModal
+        onConfirm={handleBroadcastConfirm}
+        onClose={() => setShowBroadcastModal(false)}
+      />
+    )}
     <nav className="navbar navbar-expand navbar-dark bg-dark">
       <div className="container">
         <Link className="navbar-brand fw-bold" to="/home">Penguins</Link>
@@ -91,7 +126,7 @@ export default function Navbar() {
                 role="switch"
                 id="nav-broadcasting"
                 checked={broadcasting}
-                onChange={e => toggle('broadcasting', e.target.checked)}
+                onChange={e => handleBroadcastToggle(e.target.checked)}
               />
               <label className="form-check-label text-white small" htmlFor="nav-broadcasting">Broadcasting</label>
             </div>
@@ -104,5 +139,6 @@ export default function Navbar() {
         </ul>
       </div>
     </nav>
+    </>
   );
 }

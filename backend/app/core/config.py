@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     jwt_secret_key: str
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = Field(
-        default=30,
+        default=180,
         validation_alias=AliasChoices(
             "ACCESS_TOKEN_EXPIRE_MINUTES",
             "JWT_ACCESS_TOKEN_EXPIRE_MINUTES",

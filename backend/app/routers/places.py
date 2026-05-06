@@ -112,6 +112,11 @@ async def create_place(
     payload: PlaceCreateRequest,
     current_user: User = Depends(get_current_user),
 ):
+    existing = await Location.find_one({"name": {"$regex": f"^{payload.name.strip()}$", "$options": "i"}})
+    if existing:
+        logger.info("Place creation rejected due to duplicate name name=%s creator_user_id=%s", payload.name, current_user.id)
+        raise HTTPException(status_code=409, detail="already_pending")
+
     place = Location(**payload.model_dump(), admin_approved=current_user.role == UserRole.ADMIN)
     await place.insert()
     logger.info("Created place place_id=%s creator_user_id=%s admin_approved=%s", place.id, current_user.id, place.admin_approved)

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import loadingSvg from '../assets/loading.svg';
 
 const API = 'http://127.0.0.1:8000';
 
@@ -13,13 +14,15 @@ export default function Login() {
     first_name: '', last_name: '', username: '', email: '', password: '',
   });
   const [error, setError] = useState('');
+  const [loggingIn, setLoggingIn] = useState(false);
 
   async function handleLogin(e) {
     e.preventDefault();
     setError('');
+    setLoggingIn(true);
     const body = new URLSearchParams(loginForm);
     const res = await fetch(`${API}/penguins/auth/login`, { method: 'POST', body });
-    if (!res.ok) { setError('Invalid username or password.'); return; }
+    if (!res.ok) { setError('Invalid username or password.'); setLoggingIn(false); return; }
     const data = await res.json();
     login(data.access_token);
     navigate('/home');
@@ -43,7 +46,15 @@ export default function Login() {
   }
 
   return (
-    <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light">
+    <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light" style={{ position: 'relative' }}>
+      {loggingIn && (
+        <div style={{
+          position: 'fixed', inset: 0, backgroundColor: 'rgba(255,255,255,0.85)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
+        }}>
+          <img src={loadingSvg} alt="Logging in…" style={{ width: 64, height: 64 }} />
+        </div>
+      )}
       <div className="card shadow-sm" style={{ width: 420 }}>
         <div className="card-body p-4">
           <h2 className="text-center mb-4">Penguins</h2>
