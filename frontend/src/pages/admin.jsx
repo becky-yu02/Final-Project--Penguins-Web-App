@@ -17,6 +17,13 @@ function tri(val) {
     return <span className="text-muted small">—</span>;
 }
 
+const AMENITY_FIELDS = [
+    ['wifi_available', 'Wi-Fi'],
+    ['outlets_available', 'Outlets'],
+    ['parking_available', 'Parking'],
+    ['food_available', 'Food'],
+];
+
 function EditPlaceModal({ place, token, onSave, onClose }) {
     const [form, setForm] = useState({
         name: place.name ?? '',
@@ -25,6 +32,13 @@ function EditPlaceModal({ place, token, onSave, onClose }) {
         lat: place.coordinates?.lat ?? '',
         lng: place.coordinates?.lng ?? '',
     });
+    const [overrides, setOverridesState] = useState({
+        wifi_available: place.admin_amenity_override?.wifi_available ?? null,
+        outlets_available: place.admin_amenity_override?.outlets_available ?? null,
+        parking_available: place.admin_amenity_override?.parking_available ?? null,
+        food_available: place.admin_amenity_override?.food_available ?? null,
+    });
+    const [overridesChanged, setOverridesChanged] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
 
@@ -32,9 +46,15 @@ function EditPlaceModal({ place, token, onSave, onClose }) {
         setForm(prev => ({ ...prev, [field]: value }));
     }
 
+    function setOverride(field, value) {
+        setOverridesState(prev => ({ ...prev, [field]: value }));
+        setOverridesChanged(true);
+    }
+
     async function handleSave() {
         setSaving(true);
         setError('');
+
         const body = {
             name: form.name.trim(),
             address: form.address.trim(),
@@ -48,13 +68,29 @@ function EditPlaceModal({ place, token, onSave, onClose }) {
             headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
         });
-        if (res.ok) {
-            const updated = await res.json();
-            onSave({ ...updated, id: updated.id ?? updated._id?.$oid ?? updated._id });
-        } else {
+        if (!res.ok) {
             setError('Failed to save. Please try again.');
             setSaving(false);
+            return;
         }
+        let updated = await res.json();
+
+        if (overridesChanged) {
+            const allNull = Object.values(overrides).every(v => v === null);
+            const amenityRes = await fetch(`${API}/penguins/places/${place.id}/amenities`, {
+                method: allNull ? 'DELETE' : 'PUT',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                ...(allNull ? {} : { body: JSON.stringify(overrides) }),
+            });
+            if (!amenityRes.ok) {
+                setError('Place saved but failed to update amenity overrides.');
+                setSaving(false);
+                return;
+            }
+            updated = await amenityRes.json();
+        }
+
+        onSave({ ...updated, id: updated.id ?? updated._id?.$oid ?? updated._id });
     }
 
     return (
@@ -103,6 +139,34 @@ function EditPlaceModal({ place, token, onSave, onClose }) {
                                         onChange={e => set('lng', e.target.value)}
                                     />
                                 </div>
+                            </div>
+                            <div className="mb-3">
+                                <label className="form-label fw-semibold">Amenity Overrides</label>
+                                <p className="text-muted small mb-2">
+                                    Override the community vote for specific amenities. "Community" removes the override for that field.
+                                </p>
+                                {AMENITY_FIELDS.map(([field, label]) => (
+                                    <div key={field} className="d-flex align-items-center gap-3 mb-2">
+                                        <span className="small" style={{ minWidth: '68px' }}>{label}</span>
+                                        <div className="btn-group btn-group-sm" role="group">
+                                            <button
+                                                type="button"
+                                                className={`btn ${overrides[field] === true ? 'btn-success' : 'btn-outline-success'}`}
+                                                onClick={() => setOverride(field, true)}
+                                            >Yes</button>
+                                            <button
+                                                type="button"
+                                                className={`btn ${overrides[field] === false ? 'btn-danger' : 'btn-outline-danger'}`}
+                                                onClick={() => setOverride(field, false)}
+                                            >No</button>
+                                            <button
+                                                type="button"
+                                                className={`btn ${overrides[field] === null ? 'btn-secondary' : 'btn-outline-secondary'}`}
+                                                onClick={() => setOverride(field, null)}
+                                            >Community</button>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                             {error && <div className="alert alert-danger py-2 mb-0">{error}</div>}
                         </div>
@@ -354,15 +418,25 @@ function PlacesTab({ token }) {
     );
 }
 
-function GatheringsTab() {
+function GatheringsTab({ token }) {
     const [gatherings, setGatherings] = useState([]);
 
     useEffect(() => {
-        fetch(`${API}/penguins/gatherings`)
+        fetch(`${API}/penguins/gatherings`, { headers: { Authorization: `Bearer ${token}` } })
             .then(r => r.json())
             .then(data => setGatherings(data.map(g => ({ ...g, id: g.id ?? g._id?.$oid ?? g._id }))))
             .catch(() => { });
-    }, []);
+    }, [token]);
+
+    async function deleteGathering(gathering) {
+        const res = await fetch(`${API}/penguins/gatherings/${gathering.id}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+            setGatherings(prev => prev.filter(g => g.id !== gathering.id));
+        }
+    }
 
     function statusVariant(status) {
         return { active: 'success', scheduled: 'primary', ended: 'secondary', cancelled: 'danger' }[status] ?? 'secondary';
@@ -385,6 +459,7 @@ function GatheringsTab() {
                         <th>End</th>
                         <th className="text-center">Participants</th>
                         <th>Host ID</th>
+                        <th className="text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -397,10 +472,18 @@ function GatheringsTab() {
                             <td className="small">{formatDt(g.datetime_end)}</td>
                             <td className="text-center">{g.participant_user_ids?.length ?? 0}</td>
                             <td className="small text-muted text-truncate" style={{ maxWidth: '120px' }}>{g.host_user_id}</td>
+                            <td className="text-center">
+                                <button
+                                    className="btn btn-sm btn-outline-danger"
+                                    onClick={() => deleteGathering(g)}
+                                >
+                                    Delete
+                                </button>
+                            </td>
                         </tr>
                     ))}
                     {gatherings.length === 0 && (
-                        <tr><td colSpan={7} className="text-center text-muted py-4">No gatherings found.</td></tr>
+                        <tr><td colSpan={8} className="text-center text-muted py-4">No gatherings found.</td></tr>
                     )}
                 </tbody>
             </table>
@@ -430,6 +513,16 @@ function UsersTab({ token, currentUserId }) {
         }
     }
 
+    async function deleteUser(user) {
+        const res = await fetch(`${API}/penguins/users/${user.id}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+            setUsers(prev => prev.filter(u => u.id !== user.id));
+        }
+    }
+
     return (
         <div className="table-responsive">
             <table className="table table-hover align-middle">
@@ -439,7 +532,7 @@ function UsersTab({ token, currentUserId }) {
                         <th>Name</th>
                         <th>Email</th>
                         <th className="text-center">Role</th>
-                        <th className="text-center">Action</th>
+                        <th className="text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -452,14 +545,24 @@ function UsersTab({ token, currentUserId }) {
                                 <Badge variant={user.role === 'admin' ? 'dark' : 'secondary'}>{user.role}</Badge>
                             </td>
                             <td className="text-center">
-                                <button
-                                    className={`btn btn-sm ${user.role === 'admin' ? 'btn-outline-secondary' : 'btn-outline-dark'}`}
-                                    disabled={user.id === currentUserId}
-                                    title={user.id === currentUserId ? "Can't change your own role" : undefined}
-                                    onClick={() => toggleRole(user)}
-                                >
-                                    {user.role === 'admin' ? 'Revoke Admin' : 'Make Admin'}
-                                </button>
+                                <div className="d-flex gap-2 justify-content-center">
+                                    <button
+                                        className={`btn btn-sm ${user.role === 'admin' ? 'btn-outline-secondary' : 'btn-outline-dark'}`}
+                                        disabled={user.id === currentUserId}
+                                        title={user.id === currentUserId ? "Can't change your own role" : undefined}
+                                        onClick={() => toggleRole(user)}
+                                    >
+                                        {user.role === 'admin' ? 'Revoke Admin' : 'Make Admin'}
+                                    </button>
+                                    <button
+                                        className="btn btn-sm btn-outline-danger"
+                                        disabled={user.id === currentUserId}
+                                        title={user.id === currentUserId ? "Can't delete your own account" : undefined}
+                                        onClick={() => deleteUser(user)}
+                                    >
+                                        Delete
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     ))}
@@ -506,7 +609,7 @@ export default function Admin() {
                 </ul>
 
                 {tab === 'places' && <PlacesTab token={token} />}
-                {tab === 'gatherings' && <GatheringsTab />}
+                {tab === 'gatherings' && <GatheringsTab token={token} />}
                 {tab === 'users' && <UsersTab token={token} currentUserId={user.id} />}
             </div>
         </div>

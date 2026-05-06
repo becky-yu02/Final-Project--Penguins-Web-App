@@ -35,6 +35,13 @@ class CommunitySummary(BaseModel):
     overall_rating: Optional[float] = None
 
 
+class AmenityOverride(BaseModel):
+    wifi_available: Optional[bool] = None
+    outlets_available: Optional[bool] = None
+    parking_available: Optional[bool] = None
+    food_available: Optional[bool] = None
+
+
 class Location(Document):
     name: str
     address: str
@@ -42,6 +49,7 @@ class Location(Document):
     coordinates: Optional[Coordinates] = None
     community_notes: List[CommunityNote] = Field(default_factory=list)
     community_summary: CommunitySummary = Field(default_factory=CommunitySummary)
+    admin_amenity_override: Optional[AmenityOverride] = None
     admin_approved: bool = Field(default=False)
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))

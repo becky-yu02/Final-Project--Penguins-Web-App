@@ -4,11 +4,12 @@ from datetime import datetime, UTC
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.dependencies import get_current_user, get_current_user_optional, check_note_permission
-from app.models.location import Location, CommunityNote, CommunitySummary
+from app.models.location import Location, CommunityNote, CommunitySummary, AmenityOverride
 from app.models.user import User, UserRole
 from app.schemas.location import (
     PlaceCreateRequest,
     PlaceUpdateRequest,
+    AmenityOverrideRequest,
 )
 from app.schemas.note import CommunityNoteRequest, NoteUpdate
 
@@ -17,15 +18,24 @@ router = APIRouter(prefix="/places", tags=["places"])
 logger = logging.getLogger(__name__)
 
 
-def recompute_summary(notes: list[CommunityNote]) -> CommunitySummary:
+def recompute_summary(notes: list[CommunityNote], override: AmenityOverride | None = None) -> CommunitySummary:
     def majority(field: str) -> bool | None:
+        if override is not None:
+            val = getattr(override, field)
+            if val is not None:
+                return val
         opinions = [getattr(n, field) for n in notes if getattr(n, field) is not None]
         if not opinions:
             return None
         return (opinions.count(True) / len(opinions)) >= 0.5
 
     ratings = [n.rating for n in notes if n.rating is not None]
-    feels = list(dict.fromkeys(f for n in notes if n.feel for f in n.feel))
+
+    feel_counts: dict[str, int] = {}
+    for n in notes:
+        for f in (n.feel or []):
+            feel_counts[f] = feel_counts.get(f, 0) + 1
+    feels = [f for f, _ in sorted(feel_counts.items(), key=lambda x: x[1], reverse=True)][:3]
 
     return CommunitySummary(
         wifi_available=majority("wifi_available"),
@@ -102,9 +112,9 @@ async def create_place(
     payload: PlaceCreateRequest,
     current_user: User = Depends(get_current_user),
 ):
-    place = Location(**payload.model_dump())
+    place = Location(**payload.model_dump(), admin_approved=current_user.role == UserRole.ADMIN)
     await place.insert()
-    logger.info("Created place place_id=%s creator_user_id=%s", place.id, current_user.id)
+    logger.info("Created place place_id=%s creator_user_id=%s admin_approved=%s", place.id, current_user.id, place.admin_approved)
     return {"message": "Place created", "id": str(place.id)}
 
 
@@ -190,7 +200,7 @@ async def add_community_note(
         **payload.model_dump()
     )
     place.community_notes.append(note)
-    place.community_summary = recompute_summary(place.community_notes)
+    place.community_summary = recompute_summary(place.community_notes, place.admin_amenity_override)
     place.updated_at = datetime.now(UTC)
     await place.save()
     logger.info("Added community note place_id=%s note_id=%s actor_user_id=%s", place.id, note.note_id, current_user.id)
@@ -231,7 +241,7 @@ async def update_community_note(
         raise HTTPException(status_code=404, detail="Note not found")
 
     updated_fields = apply_note_updates(place.community_notes[note_index], payload)
-    place.community_summary = recompute_summary(place.community_notes)
+    place.community_summary = recompute_summary(place.community_notes, place.admin_amenity_override)
     place.updated_at = datetime.now(UTC)
     await place.save()
     logger.info("Updated community note place_id=%s note_id=%s fields=%s", place.id, note_id, updated_fields)
@@ -253,9 +263,50 @@ async def delete_community_note(
 
     # Remove the note
     place.community_notes = [n for n in place.community_notes if n.note_id != note_id]
-    place.community_summary = recompute_summary(place.community_notes)
+    place.community_summary = recompute_summary(place.community_notes, place.admin_amenity_override)
     place.updated_at = datetime.now(UTC)
     await place.save()
     logger.warning("Deleted community note place_id=%s note_id=%s", place.id, note_id)
 
     return {"message": "Community note deleted", "place_id": str(place.id), "note_id": note_id}
+
+
+@router.put("/{place_id}/amenities")
+async def set_amenity_override(
+    place_id: str,
+    payload: AmenityOverrideRequest,
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Admin access required.")
+
+    place = await Location.get(place_id)
+    if not place:
+        raise HTTPException(status_code=404, detail="Place not found")
+
+    place.admin_amenity_override = AmenityOverride(**payload.model_dump())
+    place.community_summary = recompute_summary(place.community_notes, place.admin_amenity_override)
+    place.updated_at = datetime.now(UTC)
+    await place.save()
+    logger.info("Set amenity override place_id=%s actor_user_id=%s", place.id, current_user.id)
+    return place
+
+
+@router.delete("/{place_id}/amenities")
+async def clear_amenity_override(
+    place_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Admin access required.")
+
+    place = await Location.get(place_id)
+    if not place:
+        raise HTTPException(status_code=404, detail="Place not found")
+
+    place.admin_amenity_override = None
+    place.community_summary = recompute_summary(place.community_notes, None)
+    place.updated_at = datetime.now(UTC)
+    await place.save()
+    logger.info("Cleared amenity override place_id=%s actor_user_id=%s", place.id, current_user.id)
+    return place

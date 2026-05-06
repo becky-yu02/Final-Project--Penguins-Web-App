@@ -17,3 +17,10 @@ class PlaceUpdateRequest(BaseModel):
     type_of_place: Optional[str] = None
     coordinates: Optional[Coordinates] = None
     admin_approved: Optional[bool] = None
+
+
+class AmenityOverrideRequest(BaseModel):
+    wifi_available: Optional[bool] = None
+    outlets_available: Optional[bool] = None
+    parking_available: Optional[bool] = None
+    food_available: Optional[bool] = None

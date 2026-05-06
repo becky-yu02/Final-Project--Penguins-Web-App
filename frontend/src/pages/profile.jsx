@@ -17,6 +17,10 @@ export default function Profile() {
   const [friends, setFriends] = useState([]);
   const [favoritePlaces, setFavoritePlaces] = useState([]);
   const [gatherings, setGatherings] = useState([]);
+  const [allGatherings, setAllGatherings] = useState([]);
+  const [gatheringPlaces, setGatheringPlaces] = useState({});
+  const [selectedPlaceId, setSelectedPlaceId] = useState(null);
+  const [selectedGatheringId, setSelectedGatheringId] = useState(null);
 
   const friendIdsKey = user?.friend_ids?.join(',') ?? '';
   useEffect(() => {
@@ -36,14 +40,30 @@ export default function Profile() {
       user.favorite_places.map(id =>
         fetch(`${API}/penguins/places/${id}`).then(r => r.ok ? r.json() : null)
       )
-    ).then(results => setFavoritePlaces(results.filter(Boolean)));
+    ).then(results => setFavoritePlaces(
+      results.filter(Boolean).map(p => ({ ...p, id: p.id ?? p._id?.$oid ?? p._id }))
+    ));
   }, [favIdsKey]);
 
   useEffect(() => {
     if (!user?.id || !token) { setGatherings([]); return; }
     fetch(`${API}/penguins/gatherings`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : [])
-      .then(all => setGatherings(all.filter(g => g.host_user_id === user.id)));
+      .then(all => {
+        setAllGatherings(all);
+        const mine = all.filter(g => g.host_user_id === user.id);
+        setGatherings(mine);
+        const uniquePlaceIds = [...new Set(mine.map(g => g.place_id).filter(Boolean))];
+        Promise.all(
+          uniquePlaceIds.map(id =>
+            fetch(`${API}/penguins/places/${id}`).then(r => r.ok ? r.json() : null)
+          )
+        ).then(results => {
+          const map = {};
+          results.filter(Boolean).forEach(p => { map[p.id ?? p._id?.$oid ?? p._id] = p; });
+          setGatheringPlaces(map);
+        });
+      });
   }, [user?.id, token]);
 
   if (!user) return null;
@@ -95,7 +115,7 @@ export default function Profile() {
               className={`nav-link ${tab === 'favorites' ? 'active' : ''}`}
               onClick={() => setTab('favorites')}
             >
-              Favorites ({favoritePlaces.length})
+              Favorite Places ({favoritePlaces.length})
             </button>
           </li>
           <li className="nav-item">
@@ -115,7 +135,7 @@ export default function Profile() {
               <div className="row row-cols-2 row-cols-md-4 g-3">
                 {friends.map(friend => (
                   <div className="col" key={friend.id}>
-                    <ProfileCard user={friend} showAddFriend />
+                    <ProfileCard user={friend} />
                   </div>
                 ))}
               </div>
@@ -128,8 +148,13 @@ export default function Profile() {
             : (
               <div className="row row-cols-1 row-cols-md-3 g-3">
                 {favoritePlaces.map(place => (
-                  <div className="col" key={place.id}>
-                    <PlaceCard place={place} />
+                  <div
+                    className="col"
+                    key={place.id}
+                    onClick={() => setSelectedPlaceId(place.id === selectedPlaceId ? null : place.id)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <PlaceCard place={place} gatherings={allGatherings} highlighted={place.id === selectedPlaceId} />
                   </div>
                 ))}
               </div>
@@ -141,11 +166,23 @@ export default function Profile() {
             ? <p className="text-muted">No gatherings yet.</p>
             : (
               <div className="row row-cols-1 row-cols-md-3 g-3">
-                {gatherings.map(g => (
-                  <div className="col" key={g.id}>
-                    <GatheringCard gathering={g} />
-                  </div>
-                ))}
+                {gatherings.map(g => {
+                  const id = g._id ?? g.id;
+                  return (
+                    <div
+                      className="col"
+                      key={id}
+                      onClick={() => setSelectedGatheringId(id === selectedGatheringId ? null : id)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <GatheringCard
+                        gathering={g}
+                        place={gatheringPlaces[g.place_id]}
+                        highlighted={id === selectedGatheringId}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             )
         )}

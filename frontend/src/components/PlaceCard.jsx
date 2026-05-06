@@ -61,6 +61,7 @@ export default function PlaceCard({ place, gatherings = [], highlighted = false,
   const [heartHovered, setHeartHovered] = useState(false);
   const [friendDetails, setFriendDetails] = useState([]);
   const [showNoteModal, setShowNoteModal] = useState(false);
+  const [expandHeight, setExpandHeight] = useState(0);
   const expandRef = useRef(null);
   const titleRef = useRef(null);
 
@@ -85,6 +86,11 @@ export default function PlaceCard({ place, gatherings = [], highlighted = false,
   const relevantGatherings = placeGatherings.filter(
     g => (g.status === 'active' || g.status === 'scheduled') && isCurrentOrUpcoming(g)
   );
+
+  useLayoutEffect(() => {
+    if (!expandRef.current) return;
+    setExpandHeight(highlighted ? expandRef.current.scrollHeight : 0);
+  }, [highlighted, friendDetails, relevantGatherings.length]);
 
   // Friends whose IDs appear in active gathering participant lists at this place
   const activeParticipantIds = new Set(
@@ -206,7 +212,7 @@ export default function PlaceCard({ place, gatherings = [], highlighted = false,
 
       <div
         style={{
-          height: highlighted ? (expandRef.current?.scrollHeight ?? 'auto') : 0,
+          height: expandHeight,
           overflow: 'hidden',
           transition: 'height 280ms ease',
         }}

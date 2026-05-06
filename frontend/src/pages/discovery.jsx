@@ -217,7 +217,7 @@ function SuggestPlaceModal({ token, onClose }) {
                   value={form.type_of_place}
                   onChange={e => setFormField('type_of_place', e.target.value)}
                 >
-                  <option value="">Select a typeâ€¦</option>
+                  <option value="">Select a type</option>
                   {options.place_types.map(({ value, label }) => (<option key={value} value={value}>{label}</option>))}
                 </select>
               </div>
@@ -284,7 +284,7 @@ function SuggestPlaceModal({ token, onClose }) {
                 <textarea
                   className="form-control"
                   rows={3}
-                  placeholder="Share what makes this spot worth visitingâ€¦"
+                  placeholder="Share what makes this spot worth visiting"
                   value={note.comment}
                   onChange={e => setNoteField('comment', e.target.value)}
                 />
@@ -297,7 +297,7 @@ function SuggestPlaceModal({ token, onClose }) {
                 <input
                   type="url"
                   className="form-control"
-                  placeholder="https://â€¦"
+                  placeholder="https://example.com/image.jpg"
                   value={note.image_url}
                   onChange={e => setNoteField('image_url', e.target.value)}
                 />
@@ -319,7 +319,7 @@ function SuggestPlaceModal({ token, onClose }) {
                 onClick={handleSubmit}
                 disabled={status === 'saving' || !canSubmit}
               >
-                {status === 'saving' ? 'Submittingâ€¦' : 'Submit Suggestion'}
+                {status === 'saving' ? 'Submitting...' : 'Submit Suggestion'}
               </button>
             </div>
           </div>

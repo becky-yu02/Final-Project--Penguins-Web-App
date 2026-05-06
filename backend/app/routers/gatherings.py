@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from app.core.dependencies import get_current_user
 from app.models.gathering import Gathering, GatheringStatus
 from app.models.location import Location
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.gathering import GatheringCreateRequest, GatheringUpdateRequest
 
 router = APIRouter(prefix="/gatherings", tags=["gatherings"])
@@ -170,7 +170,8 @@ async def delete_gathering(
     if not gathering:
         raise HTTPException(status_code=404, detail="Gathering not found")
 
-    if gathering.host_user_id != str(current_user.id):
+    is_host = gathering.host_user_id == str(current_user.id)
+    if not (is_host or current_user.role == UserRole.ADMIN):
         raise HTTPException(status_code=403, detail="Only the host can delete this gathering")
 
     await gathering.delete()
