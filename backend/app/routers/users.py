@@ -6,6 +6,7 @@ from starlette import status
 
 from app.core.dependencies import get_current_user
 from app.core.authz import require_admin
+from app.models.gathering import Gathering, GatheringStatus
 from app.models.location import Location
 from app.models.user import User, UserRole
 from app.schemas.user import UserUpdateRequest, UserAccessUpdate
@@ -126,10 +127,32 @@ async def update_me(
     payload: UserUpdateRequest,
     current_user: User = Depends(get_current_user),
 ):
+    prev_gathering_id = None
+    update_data = payload.model_dump(exclude_unset=True)
+    if "online_status" in update_data and current_user.online_status.broadcasting:
+        new_status = payload.online_status
+        if new_status and not new_status.broadcasting:
+            prev_gathering_id = current_user.online_status.current_gathering_id
+
     updated_fields = apply_user_updates(current_user, payload)
     current_user.updated_at = datetime.now(UTC)
     await current_user.save()
     logger.info("Updated current user profile user_id=%s fields=%s", current_user.id, updated_fields)
+
+    if prev_gathering_id:
+        gathering = await Gathering.get(prev_gathering_id)
+        if gathering and gathering.status not in (GatheringStatus.ENDED, GatheringStatus.CANCELLED):
+            participants = gathering.participant_user_ids or []
+            if not participants:
+                gathering.status = GatheringStatus.ENDED
+                gathering.updated_at = datetime.now(UTC)
+                await gathering.save()
+                logger.info(
+                    "Ended gathering with no remaining participants gathering_id=%s user_id=%s",
+                    prev_gathering_id,
+                    current_user.id,
+                )
+
     return to_user_private(current_user)
 
 
