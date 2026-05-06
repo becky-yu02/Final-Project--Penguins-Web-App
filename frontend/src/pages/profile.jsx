@@ -21,6 +21,11 @@ export default function Profile() {
   const [gatheringPlaces, setGatheringPlaces] = useState({});
   const [selectedPlaceId, setSelectedPlaceId] = useState(null);
   const [selectedGatheringId, setSelectedGatheringId] = useState(null);
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [pendingRequestUsers, setPendingRequestUsers] = useState({});
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [sentRequestIds, setSentRequestIds] = useState(new Set());
 
   const friendIdsKey = user?.friend_ids?.join(',') ?? '';
   useEffect(() => {
@@ -45,6 +50,12 @@ export default function Profile() {
     ));
   }, [favIdsKey]);
 
+  function handleGatheringCancelled(updated) {
+    const normalize = g => ({ ...g, _id: g._id ?? g.id });
+    setAllGatherings(prev => prev.map(g => g._id === updated._id ? normalize(updated) : g));
+    setGatherings(prev => prev.map(g => g._id === updated._id ? normalize(updated) : g));
+  }
+
   useEffect(() => {
     if (!user?.id || !token) { setGatherings([]); return; }
     fetch(`${API}/penguins/gatherings`, { headers: { Authorization: `Bearer ${token}` } })
@@ -65,6 +76,65 @@ export default function Profile() {
         });
       });
   }, [user?.id, token]);
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API}/penguins/friendships/pending`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then(requests => {
+        setPendingRequests(requests);
+        Promise.all(
+          requests.map(req =>
+            fetch(`${API}/penguins/users/${req.requester_id}`, { headers: { Authorization: `Bearer ${token}` } })
+              .then(r => r.ok ? r.json() : null)
+          )
+        ).then(users => {
+          const map = {};
+          users.filter(Boolean).forEach(u => { map[u.id] = u; });
+          setPendingRequestUsers(map);
+        });
+      });
+  }, [token]);
+
+  useEffect(() => {
+    if (searchQuery.trim().length < 2) { setSearchResults([]); return; }
+    fetch(`${API}/penguins/users/search?q=${encodeURIComponent(searchQuery.trim())}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : [])
+      .then(results => setSearchResults(results.filter(u => !user?.friend_ids?.includes(u.id))));
+  }, [searchQuery]);
+
+  async function sendRequest(targetUser) {
+    const res = await fetch(`${API}/penguins/friendships/request`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ receiver_id: targetUser.id }),
+    });
+    if (res.ok) setSentRequestIds(prev => new Set([...prev, targetUser.id]));
+  }
+
+  async function acceptRequest(req) {
+    const id = req.id ?? req._id?.$oid ?? req._id;
+    const res = await fetch(`${API}/penguins/friendships/${id}/accept`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      const newFriend = pendingRequestUsers[req.requester_id];
+      if (newFriend) setFriends(prev => [...prev, newFriend]);
+      setPendingRequests(prev => prev.filter(r => (r.id ?? r._id?.$oid ?? r._id) !== id));
+    }
+  }
+
+  async function declineRequest(req) {
+    const id = req.id ?? req._id?.$oid ?? req._id;
+    const res = await fetch(`${API}/penguins/friendships/${id}/decline`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) setPendingRequests(prev => prev.filter(r => (r.id ?? r._id?.$oid ?? r._id) !== id));
+  }
 
   if (!user) return null;
 
@@ -129,17 +199,75 @@ export default function Profile() {
         </ul>
 
         {tab === 'friends' && (
-          friends.length === 0
-            ? <p className="text-muted">No friends yet.</p>
-            : (
-              <div className="row row-cols-2 row-cols-md-4 g-3">
-                {friends.map(friend => (
-                  <div className="col" key={friend.id}>
-                    <ProfileCard user={friend} />
-                  </div>
-                ))}
+          <div>
+            <div className="mb-4">
+              <h6 className="fw-semibold mb-2">Add Friend</h6>
+              <input
+                className="form-control"
+                style={{ maxWidth: 400 }}
+                placeholder="Search by username…"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+              {searchResults.length > 0 && (
+                <div className="mt-2 d-flex flex-column gap-1" style={{ maxWidth: 400 }}>
+                  {searchResults.map(u => (
+                    <div key={u.id} className="d-flex align-items-center justify-content-between px-3 py-2 border rounded bg-white">
+                      <div>
+                        <span className="fw-semibold small">@{u.username}</span>
+                      </div>
+                      <button
+                        className="btn btn-sm btn-outline-primary ms-3"
+                        disabled={sentRequestIds.has(u.id)}
+                        onClick={() => sendRequest(u)}
+                      >
+                        {sentRequestIds.has(u.id) ? 'Sent' : 'Add Friend'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {pendingRequests.length > 0 && (
+              <div className="mb-4">
+                <h6 className="fw-semibold mb-2">Incoming Requests ({pendingRequests.length})</h6>
+                <div className="d-flex flex-wrap gap-2">
+                  {pendingRequests.map(req => {
+                    const id = req.id ?? req._id?.$oid ?? req._id;
+                    const requester = pendingRequestUsers[req.requester_id];
+                    if (!requester) return null;
+                    return (
+                      <div key={id} className="d-flex align-items-center gap-3 px-3 py-2 border rounded bg-white">
+                        <div>
+                          <span className="fw-semibold small">{requester.first_name} {requester.last_name?.[0]}.</span>
+                          <span className="text-muted small ms-2">@{requester.username}</span>
+                        </div>
+                        <div className="d-flex gap-1">
+                          <button className="btn btn-sm btn-success" onClick={() => acceptRequest(req)}>Accept</button>
+                          <button className="btn btn-sm btn-outline-secondary" onClick={() => declineRequest(req)}>Decline</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            )
+            )}
+
+            <h6 className="fw-semibold mb-2">Friends ({friends.length})</h6>
+            {friends.length === 0
+              ? <p className="text-muted">No friends yet.</p>
+              : (
+                <div className="row row-cols-2 row-cols-md-4 g-3">
+                  {friends.map(friend => (
+                    <div className="col" key={friend.id}>
+                      <ProfileCard user={friend} />
+                    </div>
+                  ))}
+                </div>
+              )
+            }
+          </div>
         )}
 
         {tab === 'favorites' && (
@@ -179,6 +307,7 @@ export default function Profile() {
                         gathering={g}
                         place={gatheringPlaces[g.place_id]}
                         highlighted={id === selectedGatheringId}
+                        onCancel={handleGatheringCancelled}
                       />
                     </div>
                   );

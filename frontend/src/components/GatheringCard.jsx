@@ -28,7 +28,7 @@ function formatDate(isoStr) {
   });
 }
 
-export default function GatheringCard({ gathering, place, placeSummary, highlighted = false, onEdit, onDelete }) {
+export default function GatheringCard({ gathering, place, placeSummary, highlighted = false, onEdit, onCancel }) {
   const user = useUser();
   const { token } = useAuth();
   const resolvedSummary = place?.community_summary ?? placeSummary;
@@ -84,22 +84,26 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
   }, [highlighted]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [leaving, setLeaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [showPlaceModal, setShowPlaceModal] = useState(false);
 
   const isHost = user?.id === gathering.host_user_id;
 
-  async function handleDelete() {
-    if (!token || deleting) return;
-    setDeleting(true);
+  async function handleCancel() {
+    if (!token || cancelling) return;
+    setCancelling(true);
     try {
       const res = await fetch(`${API}/penguins/gatherings/${gathering._id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelled' }),
       });
-      if (res.ok) onDelete?.(gathering._id);
+      if (res.ok) {
+        const updated = await res.json();
+        onCancel?.(updated);
+      }
     } finally {
-      setDeleting(false);
+      setCancelling(false);
     }
   }
 
@@ -204,9 +208,22 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
               {participantDetails.length > 0 && (
                 <div className="mb-2">
                   <p className="small fw-semibold mb-1">Going</p>
-                  {participantDetails.map(u => (
-                    <p key={u.id} className="small mb-0 text-muted">@{u.username}</p>
-                  ))}
+                  {participantDetails.map(u => {
+                    const isFriend = friendIds.includes(u.id);
+                    return (
+                      <p key={u.id} className="small mb-0 d-flex align-items-center gap-1 flex-wrap">
+                        {isFriend && (
+                          <>
+                            <span className="fw-medium">{u.first_name} {u.last_name?.[0]}.</span>
+                          </>
+                        )}
+                        <span className="text-muted">@{u.username}</span>
+                        {isFriend && (
+                          <span className="badge bg-success" style={{ fontSize: '0.7em' }}>Friend</span>
+                        )}
+                      </p>
+                    );
+                  })}
                 </div>
               )}
             </>
@@ -235,7 +252,7 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
           )}
           {isHost && (
             <div className="d-flex gap-2 mt-2">
-              {onEdit && (
+              {onEdit && gathering.status !== 'cancelled' && (
                 <button
                   className="btn btn-sm btn-outline-primary"
                   onClick={e => { e.stopPropagation(); onEdit(); }}
@@ -243,13 +260,15 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
                   Edit
                 </button>
               )}
-              <button
-                className="btn btn-sm btn-outline-danger"
-                onClick={e => { e.stopPropagation(); handleDelete(); }}
-                disabled={deleting}
-              >
-                {deleting ? 'Deleting…' : 'Delete'}
-              </button>
+              {gathering.status !== 'cancelled' && (
+                <button
+                  className="btn btn-sm btn-outline-danger"
+                  onClick={e => { e.stopPropagation(); handleCancel(); }}
+                  disabled={cancelling}
+                >
+                  {cancelling ? 'Cancelling…' : 'Cancel Gathering'}
+                </button>
+              )}
             </div>
           )}
           {!isHost && onEdit && (

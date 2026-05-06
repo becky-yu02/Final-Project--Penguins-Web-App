@@ -418,8 +418,131 @@ function PlacesTab({ token }) {
     );
 }
 
+function GatheringExpandedRow({ gathering, token }) {
+    const [host, setHost] = useState(null);
+    const [participants, setParticipants] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    function formatDt(iso) {
+        if (!iso) return '—';
+        return new Date(iso).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+    }
+
+    useEffect(() => {
+        let cancelled = false;
+        setLoading(true);
+        Promise.all([
+            fetch(`${API}/penguins/users/${gathering.host_user_id}`, { headers: { Authorization: `Bearer ${token}` } })
+                .then(r => r.ok ? r.json() : null),
+            Promise.all(
+                (gathering.participant_user_ids ?? []).map(id =>
+                    fetch(`${API}/penguins/users/${id}`, { headers: { Authorization: `Bearer ${token}` } })
+                        .then(r => r.ok ? r.json() : null)
+                )
+            ),
+        ]).then(([hostData, participantResults]) => {
+            if (cancelled) return;
+            setHost(hostData);
+            setParticipants(participantResults.filter(Boolean));
+            setLoading(false);
+        });
+        return () => { cancelled = true; };
+    }, [gathering.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    return (
+        <tr>
+            <td colSpan={9} className="p-0">
+                <div className="px-4 py-3" style={{ backgroundColor: '#f8f9fa' }}>
+                    {loading ? (
+                        <p className="text-muted small mb-0">Loading…</p>
+                    ) : (
+                        <>
+                            <div className="row g-3 mb-3">
+                                <div className="col-auto">
+                                    <span className="text-muted small fw-semibold">ID</span>
+                                    <div className="small text-break">{gathering.id}</div>
+                                </div>
+                                <div className="col-auto">
+                                    <span className="text-muted small fw-semibold">Place ID</span>
+                                    <div className="small text-break">{gathering.place_id ?? '—'}</div>
+                                </div>
+                                <div className="col-auto">
+                                    <span className="text-muted small fw-semibold">Visibility</span>
+                                    <div className="small text-capitalize">{gathering.visibility}</div>
+                                </div>
+                                <div className="col-auto">
+                                    <span className="text-muted small fw-semibold">Start</span>
+                                    <div className="small">{formatDt(gathering.datetime_start)}</div>
+                                </div>
+                                <div className="col-auto">
+                                    <span className="text-muted small fw-semibold">End</span>
+                                    <div className="small">{formatDt(gathering.datetime_end)}</div>
+                                </div>
+                                <div className="col-auto">
+                                    <span className="text-muted small fw-semibold">Created</span>
+                                    <div className="small">{formatDt(gathering.created_at)}</div>
+                                </div>
+                                <div className="col-auto">
+                                    <span className="text-muted small fw-semibold">Updated</span>
+                                    <div className="small">{formatDt(gathering.updated_at)}</div>
+                                </div>
+                                {gathering.image_url && (
+                                    <div className="col-auto">
+                                        <span className="text-muted small fw-semibold">Image</span>
+                                        <div><a href={gathering.image_url} target="_blank" rel="noopener noreferrer" className="small">View</a></div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {gathering.description && (
+                                <div className="mb-3">
+                                    <span className="text-muted small fw-semibold">Description</span>
+                                    <p className="small mb-0">{gathering.description}</p>
+                                </div>
+                            )}
+
+                            <div className="mb-3">
+                                <span className="text-muted small fw-semibold">Host</span>
+                                {host ? (
+                                    <div className="small">
+                                        {host.first_name} {host.last_name}{' '}
+                                        <span className="text-muted">@{host.username}</span>
+                                        <span className="ms-2 text-muted" style={{ fontSize: '0.8em' }}>{gathering.host_user_id}</span>
+                                    </div>
+                                ) : (
+                                    <div className="small text-muted">{gathering.host_user_id}</div>
+                                )}
+                            </div>
+
+                            <div>
+                                <span className="text-muted small fw-semibold">
+                                    Participants ({gathering.participant_user_ids?.length ?? 0})
+                                </span>
+                                {participants.length === 0 ? (
+                                    <p className="small text-muted mb-0">None</p>
+                                ) : (
+                                    <div className="d-flex flex-wrap gap-2 mt-1">
+                                        {participants.map(u => (
+                                            <span key={u.id} className="badge bg-light text-dark border small fw-normal">
+                                                {u.first_name} {u.last_name} <span className="text-muted">@{u.username}</span>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    )}
+                </div>
+            </td>
+        </tr>
+    );
+}
+
 function GatheringsTab({ token }) {
     const [gatherings, setGatherings] = useState([]);
+    const [expandedId, setExpandedId] = useState(null);
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
 
     useEffect(() => {
         fetch(`${API}/penguins/gatherings`, { headers: { Authorization: `Bearer ${token}` } })
@@ -428,6 +551,17 @@ function GatheringsTab({ token }) {
             .catch(() => { });
     }, [token]);
 
+    async function cancelGathering(gathering) {
+        const res = await fetch(`${API}/penguins/gatherings/${gathering.id}`, {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'cancelled' }),
+        });
+        if (res.ok) {
+            setGatherings(prev => prev.map(g => g.id === gathering.id ? { ...g, status: 'cancelled' } : g));
+        }
+    }
+
     async function deleteGathering(gathering) {
         const res = await fetch(`${API}/penguins/gatherings/${gathering.id}`, {
             method: 'DELETE',
@@ -435,6 +569,7 @@ function GatheringsTab({ token }) {
         });
         if (res.ok) {
             setGatherings(prev => prev.filter(g => g.id !== gathering.id));
+            if (expandedId === gathering.id) setExpandedId(null);
         }
     }
 
@@ -447,47 +582,120 @@ function GatheringsTab({ token }) {
         return new Date(iso).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
     }
 
+    const fromMs = dateFrom ? new Date(dateFrom).getTime() : null;
+    const toMs = dateTo ? new Date(dateTo + 'T23:59:59').getTime() : null;
+    const visible = gatherings.filter(g => {
+        const t = g.datetime_start ? new Date(g.datetime_start).getTime() : null;
+        if (t === null) return true;
+        if (fromMs !== null && t < fromMs) return false;
+        if (toMs !== null && t > toMs) return false;
+        return true;
+    });
+
     return (
-        <div className="table-responsive">
-            <table className="table table-hover align-middle">
-                <thead className="table-light">
-                    <tr>
-                        <th>Title</th>
-                        <th>Status</th>
-                        <th>Visibility</th>
-                        <th>Start</th>
-                        <th>End</th>
-                        <th className="text-center">Participants</th>
-                        <th>Host ID</th>
-                        <th className="text-center">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {gatherings.map(g => (
-                        <tr key={g.id}>
-                            <td className="fw-semibold">{g.title}</td>
-                            <td><Badge variant={statusVariant(g.status)}>{g.status}</Badge></td>
-                            <td className="text-capitalize">{g.visibility}</td>
-                            <td className="small">{formatDt(g.datetime_start)}</td>
-                            <td className="small">{formatDt(g.datetime_end)}</td>
-                            <td className="text-center">{g.participant_user_ids?.length ?? 0}</td>
-                            <td className="small text-muted text-truncate" style={{ maxWidth: '120px' }}>{g.host_user_id}</td>
-                            <td className="text-center">
-                                <button
-                                    className="btn btn-sm btn-outline-danger"
-                                    onClick={() => deleteGathering(g)}
-                                >
-                                    Delete
-                                </button>
-                            </td>
+        <>
+            <div className="d-flex align-items-center gap-3 mb-3 flex-wrap">
+                <div className="d-flex align-items-center gap-2">
+                    <label className="form-label mb-0 small fw-semibold text-nowrap">From</label>
+                    <input
+                        type="date"
+                        className="form-control form-control-sm"
+                        style={{ width: 160 }}
+                        value={dateFrom}
+                        onChange={e => setDateFrom(e.target.value)}
+                    />
+                </div>
+                <div className="d-flex align-items-center gap-2">
+                    <label className="form-label mb-0 small fw-semibold text-nowrap">To</label>
+                    <input
+                        type="date"
+                        className="form-control form-control-sm"
+                        style={{ width: 160 }}
+                        value={dateTo}
+                        onChange={e => setDateTo(e.target.value)}
+                    />
+                </div>
+                {(dateFrom || dateTo) && (
+                    <button
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={() => { setDateFrom(''); setDateTo(''); }}
+                    >
+                        Clear
+                    </button>
+                )}
+                <span className="small text-muted ms-auto">{visible.length} of {gatherings.length}</span>
+            </div>
+            <div className="table-responsive">
+                <table className="table table-hover align-middle">
+                    <thead className="table-light">
+                        <tr>
+                            <th></th>
+                            <th>Title</th>
+                            <th>Status</th>
+                            <th>Visibility</th>
+                            <th>Start</th>
+                            <th>End</th>
+                            <th className="text-center">Participants</th>
+                            <th>Host</th>
+                            <th className="text-center">Actions</th>
                         </tr>
-                    ))}
-                    {gatherings.length === 0 && (
-                        <tr><td colSpan={8} className="text-center text-muted py-4">No gatherings found.</td></tr>
-                    )}
-                </tbody>
-            </table>
-        </div>
+                    </thead>
+                    <tbody>
+                        {visible.map(g => {
+                            const expanded = expandedId === g.id;
+                            return (
+                                <React.Fragment key={g.id}>
+                                    <tr
+                                        onClick={() => setExpandedId(expanded ? null : g.id)}
+                                        style={{ cursor: 'pointer' }}
+                                        className={expanded ? 'table-active' : ''}
+                                    >
+                                        <td className="text-muted small" style={{ width: '24px' }}>
+                                            {expanded ? '▾' : '▸'}
+                                        </td>
+                                        <td className="fw-semibold">{g.title}</td>
+                                        <td><Badge variant={statusVariant(g.status)}>{g.status}</Badge></td>
+                                        <td className="text-capitalize">{g.visibility}</td>
+                                        <td className="small">{formatDt(g.datetime_start)}</td>
+                                        <td className="small">{formatDt(g.datetime_end)}</td>
+                                        <td className="text-center">{g.participant_user_ids?.length ?? 0}</td>
+                                        <td className="small text-muted text-truncate" style={{ maxWidth: '120px' }}>{g.host_user_id}</td>
+                                        <td className="text-center" onClick={e => e.stopPropagation()}>
+                                            <div className="d-flex gap-2 justify-content-center">
+                                                {g.status !== 'cancelled' && g.status !== 'ended' && (
+                                                    <button
+                                                        className="btn btn-sm btn-outline-warning"
+                                                        onClick={() => cancelGathering(g)}
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                )}
+                                                <button
+                                                    className="btn btn-sm btn-outline-danger"
+                                                    onClick={() => deleteGathering(g)}
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {expanded && (
+                                        <GatheringExpandedRow
+                                            key={`${g.id}-expanded`}
+                                            gathering={g}
+                                            token={token}
+                                        />
+                                    )}
+                                </React.Fragment>
+                            );
+                        })}
+                        {visible.length === 0 && (
+                            <tr><td colSpan={9} className="text-center text-muted py-4">No gatherings found.</td></tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </>
     );
 }
 

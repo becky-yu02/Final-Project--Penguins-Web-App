@@ -13,6 +13,36 @@ router = APIRouter(prefix="/gatherings", tags=["gatherings"])
 logger = logging.getLogger(__name__)
 
 
+def _as_utc(dt):
+    if dt is None:
+        return None
+    return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
+
+
+async def auto_update_status(gathering: Gathering) -> Gathering:
+    if gathering.status in (GatheringStatus.ENDED, GatheringStatus.CANCELLED):
+        return gathering
+
+    now = datetime.now(UTC)
+    start = _as_utc(gathering.datetime_start)
+    end = _as_utc(gathering.datetime_end)
+
+    if end and now > end:
+        new_status = GatheringStatus.ENDED
+    elif start and now >= start:
+        new_status = GatheringStatus.ACTIVE
+    else:
+        new_status = GatheringStatus.SCHEDULED
+
+    if new_status != gathering.status:
+        gathering.status = new_status
+        gathering.updated_at = datetime.now(UTC)
+        await gathering.save()
+        logger.info("Auto-updated gathering status gathering_id=%s status=%s", gathering.id, new_status)
+
+    return gathering
+
+
 def to_gathering_summary(gathering: Gathering):
     return {
         "id": str(gathering.id),
@@ -90,6 +120,7 @@ async def create_gathering(
 @router.get("")
 async def list_gatherings():
     gatherings = await Gathering.find_all().to_list()
+    gatherings = [await auto_update_status(g) for g in gatherings]
     logger.info("Listed gatherings count=%s", len(gatherings))
     return gatherings
 
@@ -135,6 +166,7 @@ async def get_gathering(gathering_id: str):
     if not gathering:
         logger.warning("Requested gathering not found gathering_id=%s", gathering_id)
         raise HTTPException(status_code=404, detail="Gathering not found")
+    gathering = await auto_update_status(gathering)
     logger.info("Fetched gathering gathering_id=%s", gathering_id)
     return gathering
 

@@ -39,6 +39,7 @@ export default function Home() {
 
   const active = gatherings.filter(g => g.status === 'active' && isCurrentOrUpcoming(g));
   const scheduled = gatherings.filter(g => g.status === 'scheduled' && isCurrentOrUpcoming(g));
+  const cancelledForMe = gatherings.filter(g => g.status === 'cancelled' && (g.participant_user_ids ?? []).includes(user?.id));
   const allGatherings = [...active, ...scheduled];
 
   const favoritePlaces = places.filter(p =>
@@ -71,6 +72,10 @@ export default function Home() {
     }
   }, [selectedPlaceId]);
 
+  function handleCancelled(updated) {
+    setGatherings(prev => prev.map(g => g._id === updated._id ? { ...g, ...updated } : g));
+  }
+
   function renderGatherings(gatheringsList) {
     return gatheringsList.map(g => (
       <div
@@ -88,6 +93,7 @@ export default function Home() {
           gathering={g}
           place={places.find(p => p.id === g.place_id)}
           highlighted={g._id === selectedGatheringId}
+          onCancel={handleCancelled}
         />
       </div>
     ));
@@ -134,7 +140,7 @@ export default function Home() {
                 )}
               </section>
 
-              <section>
+              <section className="mb-5">
                 <h5 className="mb-3">Coming Up</h5>
                 {scheduled.length === 0 ? (
                   <p className="text-muted">No upcoming gatherings.</p>
@@ -144,6 +150,15 @@ export default function Home() {
                   </div>
                 )}
               </section>
+
+              {cancelledForMe.length > 0 && (
+                <section>
+                  <h5 className="mb-3 text-muted">Cancelled</h5>
+                  <div className="row row-cols-1 row-cols-xl-2 g-3 align-items-start">
+                    {renderGatherings(cancelledForMe)}
+                  </div>
+                </section>
+              )}
             </>
           )}
 

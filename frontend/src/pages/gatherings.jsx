@@ -419,6 +419,7 @@ export default function Gatherings() {
   const myGatherings = gatherings.filter(g => g.host_user_id === user?.id && (g.status === 'active' || g.status === 'scheduled') && isCurrentOrUpcoming(g));
   const active = gatherings.filter(g => g.status === 'active' && g.host_user_id !== user?.id && isCurrentOrUpcoming(g));
   const scheduled = gatherings.filter(g => g.status === 'scheduled' && g.host_user_id !== user?.id && isCurrentOrUpcoming(g));
+  const cancelledForMe = gatherings.filter(g => g.status === 'cancelled' && (g.participant_user_ids ?? []).includes(user?.id));
 
   function handleCreated(newGathering) {
     setGatherings(prev => [newGathering, ...prev]);
@@ -428,9 +429,8 @@ export default function Gatherings() {
     setGatherings(prev => prev.map(g => g._id === updated._id ? updated : g));
   }
 
-  function handleDeleted(id) {
-    setGatherings(prev => prev.filter(g => g._id !== id));
-    setSelectedId(prev => prev === id ? null : prev);
+  function handleCancelled(updated) {
+    setGatherings(prev => prev.map(g => g._id === updated._id ? { ...g, ...updated } : g));
   }
 
   function renderGatherings(list, isOwned = false) {
@@ -447,7 +447,7 @@ export default function Gatherings() {
           place={places.find(p => p.id === g.place_id)}
           highlighted={g._id === selectedId}
           onEdit={isOwned ? () => setEditingGathering(g) : undefined}
-          onDelete={isOwned ? handleDeleted : undefined}
+          onCancel={isOwned ? handleCancelled : undefined}
         />
       </div>
     ));
@@ -456,7 +456,7 @@ export default function Gatherings() {
   return (
     <div className="d-flex flex-column" style={{ minHeight: '100vh' }}>
       <Navbar />
-      <div className="container py-4">
+      <div className="container-xl py-4">
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h4 className="mb-0">Gatherings</h4>
           <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
@@ -464,36 +464,55 @@ export default function Gatherings() {
           </button>
         </div>
 
-        {myGatherings.length > 0 && (
-          <section className="mb-5">
-            <h5 className="mb-3">My Gatherings</h5>
-            <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 align-items-start">
-              {renderGatherings(myGatherings, true /* isOwned */)}
-            </div>
-          </section>
-        )}
+        <div className="row g-4 align-items-start">
+          {/* Left column — My Gatherings + Coming Up */}
+          <div className="col-12 col-lg-8">
+            {myGatherings.length > 0 && (
+              <section className="mb-5">
+                <h5 className="mb-3">My Gatherings</h5>
+                <div className="row row-cols-1 row-cols-md-2 g-3 align-items-start">
+                  {renderGatherings(myGatherings, true)}
+                </div>
+              </section>
+            )}
 
-        <section className="mb-5">
-          <h5 className="mb-3">Active Now</h5>
-          {active.length === 0 ? (
-            <p className="text-muted">No active gatherings right now.</p>
-          ) : (
-            <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 align-items-start">
-              {renderGatherings(active)}
-            </div>
-          )}
-        </section>
+            <section className="mb-5">
+              <h5 className="mb-3">Coming Up</h5>
+              {scheduled.length === 0 ? (
+                <p className="text-muted">No upcoming gatherings.</p>
+              ) : (
+                <div className="row row-cols-1 row-cols-md-2 g-3 align-items-start">
+                  {renderGatherings(scheduled)}
+                </div>
+              )}
+            </section>
+          </div>
 
-        <section>
-          <h5 className="mb-3">Coming Up</h5>
-          {scheduled.length === 0 ? (
-            <p className="text-muted">No upcoming gatherings.</p>
-          ) : (
-            <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 align-items-start">
-              {renderGatherings(scheduled)}
+          {/* Right column — Active Now + Cancelled */}
+          <div className="col-12 col-lg-4">
+            <div className="sticky-top" style={{ top: '1rem' }}>
+              <section className="mb-5">
+                <h5 className="mb-3">Active Now</h5>
+                {active.length === 0 ? (
+                  <p className="text-muted">No active gatherings right now.</p>
+                ) : (
+                  <div className="row row-cols-1 g-3 align-items-start">
+                    {renderGatherings(active)}
+                  </div>
+                )}
+              </section>
+
+              {cancelledForMe.length > 0 && (
+                <section className="mb-5">
+                  <h5 className="mb-3 text-muted">Cancelled</h5>
+                  <div className="row row-cols-1 g-3 align-items-start">
+                    {renderGatherings(cancelledForMe, cancelledForMe.some(g => g.host_user_id === user?.id))}
+                  </div>
+                </section>
+              )}
             </div>
-          )}
-        </section>
+          </div>
+        </div>
       </div>
 
       {showCreate && (
