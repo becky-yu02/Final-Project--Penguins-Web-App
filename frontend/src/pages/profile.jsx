@@ -21,11 +21,13 @@ export default function Profile() {
   const [gatheringPlaces, setGatheringPlaces] = useState({});
   const [selectedPlaceId, setSelectedPlaceId] = useState(null);
   const [selectedGatheringId, setSelectedGatheringId] = useState(null);
+  const [gatheringFetchTick, setGatheringFetchTick] = useState(0);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [pendingRequestUsers, setPendingRequestUsers] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
-  const [sentRequestIds, setSentRequestIds] = useState(new Set());
+  // userId -> 'pending_sent' | 'friends'
+  const [friendshipMap, setFriendshipMap] = useState({});
 
   const friendIdsKey = user?.friend_ids?.join(',') ?? '';
   useEffect(() => {
@@ -75,7 +77,13 @@ export default function Profile() {
           setGatheringPlaces(map);
         });
       });
-  }, [user?.id, token]);
+  }, [user?.id, token, gatheringFetchTick]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    function handleGatheringCreated() { setGatheringFetchTick(t => t + 1); }
+    window.addEventListener('gathering-created', handleGatheringCreated);
+    return () => window.removeEventListener('gathering-created', handleGatheringCreated);
+  }, []);
 
   useEffect(() => {
     if (!token) return;
@@ -97,13 +105,31 @@ export default function Profile() {
   }, [token]);
 
   useEffect(() => {
+    if (!token || !user?.id) return;
+    fetch(`${API}/penguins/friendships`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then(friendships => {
+        const map = {};
+        friendships.forEach(f => {
+          if (f.status === 'accepted') {
+            const otherId = f.requester_id === user.id ? f.receiver_id : f.requester_id;
+            map[otherId] = 'friends';
+          } else if (f.status === 'pending' && f.requester_id === user.id) {
+            map[f.receiver_id] = 'pending_sent';
+          }
+        });
+        setFriendshipMap(map);
+      });
+  }, [token, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
     if (searchQuery.trim().length < 2) { setSearchResults([]); return; }
     fetch(`${API}/penguins/users/search?q=${encodeURIComponent(searchQuery.trim())}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.ok ? r.json() : [])
-      .then(results => setSearchResults(results.filter(u => !user?.friend_ids?.includes(u.id))));
-  }, [searchQuery]);
+      .then(results => setSearchResults(results.filter(u => u.id !== user?.id)));
+  }, [searchQuery]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function sendRequest(targetUser) {
     const res = await fetch(`${API}/penguins/friendships/request`, {
@@ -111,7 +137,7 @@ export default function Profile() {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ receiver_id: targetUser.id }),
     });
-    if (res.ok) setSentRequestIds(prev => new Set([...prev, targetUser.id]));
+    if (res.ok) setFriendshipMap(prev => ({ ...prev, [targetUser.id]: 'pending_sent' }));
   }
 
   async function acceptRequest(req) {
@@ -211,20 +237,27 @@ export default function Profile() {
               />
               {searchResults.length > 0 && (
                 <div className="mt-2 d-flex flex-column gap-1" style={{ maxWidth: 400 }}>
-                  {searchResults.map(u => (
-                    <div key={u.id} className="d-flex align-items-center justify-content-between px-3 py-2 border rounded bg-white">
-                      <div>
-                        <span className="fw-semibold small">@{u.username}</span>
+                  {searchResults.map(u => {
+                    const relation = friendshipMap[u.id];
+                    return (
+                      <div key={u.id} className="d-flex align-items-center justify-content-between px-3 py-2 border rounded bg-white">
+                        <div>
+                          <span className="fw-semibold small">@{u.username}</span>
+                        </div>
+                        {relation === 'friends' ? (
+                          <button className="btn btn-sm btn-success ms-3" disabled>Already Friends</button>
+                        ) : (
+                          <button
+                            className="btn btn-sm btn-outline-primary ms-3"
+                            disabled={relation === 'pending_sent'}
+                            onClick={() => sendRequest(u)}
+                          >
+                            {relation === 'pending_sent' ? 'Sent' : 'Add Friend'}
+                          </button>
+                        )}
                       </div>
-                      <button
-                        className="btn btn-sm btn-outline-primary ms-3"
-                        disabled={sentRequestIds.has(u.id)}
-                        onClick={() => sendRequest(u)}
-                      >
-                        {sentRequestIds.has(u.id) ? 'Sent' : 'Add Friend'}
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

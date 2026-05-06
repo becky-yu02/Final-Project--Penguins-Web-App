@@ -551,6 +551,17 @@ function GatheringsTab({ token }) {
             .catch(() => { });
     }, [token]);
 
+    useEffect(() => {
+        function refetch() {
+            fetch(`${API}/penguins/gatherings`, { headers: { Authorization: `Bearer ${token}` } })
+                .then(r => r.json())
+                .then(data => setGatherings(data.map(g => ({ ...g, id: g.id ?? g._id?.$oid ?? g._id }))))
+                .catch(() => { });
+        }
+        window.addEventListener('gathering-created', refetch);
+        return () => window.removeEventListener('gathering-created', refetch);
+    }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
+
     async function cancelGathering(gathering) {
         const res = await fetch(`${API}/penguins/gatherings/${gathering.id}`, {
             method: 'PUT',

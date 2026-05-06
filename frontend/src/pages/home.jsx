@@ -1,15 +1,17 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Navbar from '../components/Navbar';
 import GatheringCard from '../components/GatheringCard';
 import PlaceCard from '../components/PlaceCard';
 import MapView from '../components/MapView';
 import { useUser } from '../context/UserContext';
+import { useAuth } from '../context/AuthContext';
 import { isCurrentOrUpcoming } from '../utils/gathering_time_check';
 
 const API = 'http://127.0.0.1:8000';
 
 export default function Home() {
   const user = useUser();
+  const { token } = useAuth();
   const [view, setView] = useState('gatherings');
   const [selectedPlaceId, setSelectedPlaceId] = useState(null);
   const [selectedGatheringId, setSelectedGatheringId] = useState(null);
@@ -17,7 +19,10 @@ export default function Home() {
   const [gatherings, setGatherings] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
   const [locationLoading, setLocationLoading] = useState(true);
+  const [friendsData, setFriendsData] = useState([]);
   const cardRefs = useRef({});
+
+  const friendIdsKey = user?.friend_ids?.join(',') ?? '';
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
@@ -30,15 +35,57 @@ export default function Home() {
     fetch(`${API}/penguins/places`)
       .then(r => r.json())
       .then(data => setPlaces(data.map(p => ({ ...p, id: p.id ?? p._id }))))
-      .catch(() => {});
+      .catch(() => { });
     fetch(`${API}/penguins/gatherings`)
       .then(r => r.json())
       .then(setGatherings)
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
-  const active = gatherings.filter(g => g.status === 'active' && isCurrentOrUpcoming(g));
-  const scheduled = gatherings.filter(g => g.status === 'scheduled' && isCurrentOrUpcoming(g));
+  useEffect(() => {
+    function refetch() {
+      fetch(`${API}/penguins/gatherings`)
+        .then(r => r.json())
+        .then(setGatherings)
+        .catch(() => { });
+    }
+    window.addEventListener('gathering-created', refetch);
+    return () => window.removeEventListener('gathering-created', refetch);
+  }, []);
+
+  useEffect(() => {
+    const ids = user?.friend_ids ?? [];
+    if (!ids.length || !token) { setFriendsData([]); return; }
+    Promise.all(
+      ids.map(id =>
+        fetch(`${API}/penguins/users/${id}`, { headers: { Authorization: `Bearer ${token}` } })
+          .then(r => r.ok ? r.json() : null)
+      )
+    ).then(results => setFriendsData(results.filter(Boolean)));
+  }, [friendIdsKey, token]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const friendMarkers = useMemo(() => {
+    const markers = [];
+    for (const friend of friendsData) {
+      if (!friend.online_status?.broadcasting || !friend.online_status?.current_gathering_id) continue;
+      const gid = friend.online_status.current_gathering_id;
+      const gathering = gatherings.find(g => g._id === gid || g.id === gid);
+      if (!gathering) continue;
+      const place = places.find(p => p.id === gathering.place_id);
+      if (!place?.coordinates) continue;
+      markers.push({
+        userId: friend.id ?? friend._id,
+        name: `${friend.first_name} ${friend.last_name}`,
+        username: friend.username,
+        imageUrl: friend.profile_image_url ?? null,
+        position: place.coordinates,
+      });
+    }
+    return markers;
+  }, [friendsData, gatherings, places]);
+
+  const active = gatherings.filter(g => g.status === 'active');
+  const scheduled = gatherings.filter(g => g.status === 'scheduled');
   const cancelledForMe = gatherings.filter(g => g.status === 'cancelled' && (g.participant_user_ids ?? []).includes(user?.id));
   const allGatherings = [...active, ...scheduled];
 
@@ -83,10 +130,10 @@ export default function Home() {
         key={g._id}
         ref={el => { cardRefs.current[g._id] = el; }}
         onClick={() => {
-            const opening = g._id !== selectedGatheringId;
-            setSelectedGatheringId(opening ? g._id : null);
-            setSelectedPlaceId(opening ? g.place_id : null);
-          }}
+          const opening = g._id !== selectedGatheringId;
+          setSelectedGatheringId(opening ? g._id : null);
+          setSelectedPlaceId(opening ? g.place_id : null);
+        }}
         style={{ cursor: 'pointer' }}
       >
         <GatheringCard
@@ -193,6 +240,7 @@ export default function Home() {
             places={mapPlaces}
             selectedPlaceId={selectedPlaceId}
             onMarkerClick={setSelectedPlaceId}
+            friendMarkers={friendMarkers}
           />
         </div>
       </div>

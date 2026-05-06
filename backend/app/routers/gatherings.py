@@ -16,7 +16,29 @@ logger = logging.getLogger(__name__)
 def _as_utc(dt):
     if dt is None:
         return None
-    return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC)
+
+
+async def clear_broadcasting_for_gathering(gathering_id: str) -> None:
+    users = await User.find(
+        {
+            "online_status.broadcasting": True,
+            "online_status.current_gathering_id": gathering_id,
+        }
+    ).to_list()
+    for user in users:
+        user.online_status.broadcasting = False
+        user.online_status.current_gathering_id = None
+        user.updated_at = datetime.now(UTC)
+        await user.save()
+    if users:
+        logger.info(
+            "Cleared broadcasting for %s user(s) on terminal gathering gathering_id=%s",
+            len(users),
+            gathering_id,
+        )
 
 
 async def auto_update_status(gathering: Gathering) -> Gathering:
@@ -38,7 +60,13 @@ async def auto_update_status(gathering: Gathering) -> Gathering:
         gathering.status = new_status
         gathering.updated_at = datetime.now(UTC)
         await gathering.save()
-        logger.info("Auto-updated gathering status gathering_id=%s status=%s", gathering.id, new_status)
+        logger.info(
+            "Auto-updated gathering status gathering_id=%s status=%s",
+            gathering.id,
+            new_status,
+        )
+        if new_status == GatheringStatus.ENDED:
+            await clear_broadcasting_for_gathering(str(gathering.id))
 
     return gathering
 
@@ -98,7 +126,11 @@ async def create_gathering(
 ):
     place = await Location.get(payload.place_id)
     if not place:
-        logger.warning("Gathering creation rejected because place was not found place_id=%s host_user_id=%s", payload.place_id, current_user.id)
+        logger.warning(
+            "Gathering creation rejected because place was not found place_id=%s host_user_id=%s",
+            payload.place_id,
+            current_user.id,
+        )
         raise HTTPException(status_code=404, detail="Place not found")
 
     gathering = Gathering(
@@ -113,7 +145,11 @@ async def create_gathering(
         participant_user_ids=[str(current_user.id)],
     )
     await gathering.insert()
-    logger.info("Created gathering gathering_id=%s host_user_id=%s", gathering.id, current_user.id)
+    logger.info(
+        "Created gathering gathering_id=%s host_user_id=%s",
+        gathering.id,
+        current_user.id,
+    )
     return {"message": "Gathering created", "id": str(gathering.id)}
 
 
@@ -179,17 +215,37 @@ async def update_gathering(
 ):
     gathering = await Gathering.get(gathering_id)
     if not gathering:
-        logger.warning("Update target gathering not found gathering_id=%s actor_user_id=%s", gathering_id, current_user.id)
+        logger.warning(
+            "Update target gathering not found gathering_id=%s actor_user_id=%s",
+            gathering_id,
+            current_user.id,
+        )
         raise HTTPException(status_code=404, detail="Gathering not found")
 
     if gathering.host_user_id != str(current_user.id):
-        logger.warning("Unauthorized gathering update attempt gathering_id=%s actor_user_id=%s", gathering_id, current_user.id)
-        raise HTTPException(status_code=403, detail="Only the host can update this gathering")
+        logger.warning(
+            "Unauthorized gathering update attempt gathering_id=%s actor_user_id=%s",
+            gathering_id,
+            current_user.id,
+        )
+        raise HTTPException(
+            status_code=403, detail="Only the host can update this gathering"
+        )
 
     updated_fields = apply_gathering_updates(gathering, payload)
     gathering.updated_at = datetime.now(UTC)
     await gathering.save()
-    logger.info("Updated gathering gathering_id=%s actor_user_id=%s fields=%s", gathering.id, current_user.id, updated_fields)
+    logger.info(
+        "Updated gathering gathering_id=%s actor_user_id=%s fields=%s",
+        gathering.id,
+        current_user.id,
+        updated_fields,
+    )
+    if "status" in updated_fields and gathering.status in (
+        GatheringStatus.ENDED,
+        GatheringStatus.CANCELLED,
+    ):
+        await clear_broadcasting_for_gathering(str(gathering.id))
     return gathering
 
 
@@ -204,10 +260,17 @@ async def delete_gathering(
 
     is_host = gathering.host_user_id == str(current_user.id)
     if not (is_host or current_user.role == UserRole.ADMIN):
-        raise HTTPException(status_code=403, detail="Only the host can delete this gathering")
+        raise HTTPException(
+            status_code=403, detail="Only the host can delete this gathering"
+        )
 
     await gathering.delete()
-    logger.info("Deleted gathering gathering_id=%s actor_user_id=%s", gathering_id, current_user.id)
+    await clear_broadcasting_for_gathering(gathering_id)
+    logger.info(
+        "Deleted gathering gathering_id=%s actor_user_id=%s",
+        gathering_id,
+        current_user.id,
+    )
     return {"message": "Gathering deleted"}
 
 
@@ -218,7 +281,11 @@ async def join_gathering(
 ):
     gathering = await Gathering.get(gathering_id)
     if not gathering:
-        logger.warning("Join target gathering not found gathering_id=%s actor_user_id=%s", gathering_id, current_user.id)
+        logger.warning(
+            "Join target gathering not found gathering_id=%s actor_user_id=%s",
+            gathering_id,
+            current_user.id,
+        )
         raise HTTPException(status_code=404, detail="Gathering not found")
 
     user_id = str(current_user.id)
@@ -226,11 +293,22 @@ async def join_gathering(
         gathering.participant_user_ids.append(user_id)
         gathering.updated_at = datetime.now(UTC)
         await gathering.save()
-        logger.info("Joined gathering gathering_id=%s actor_user_id=%s", gathering.id, current_user.id)
+        logger.info(
+            "Joined gathering gathering_id=%s actor_user_id=%s",
+            gathering.id,
+            current_user.id,
+        )
     else:
-        logger.info("Join skipped because user already present gathering_id=%s actor_user_id=%s", gathering.id, current_user.id)
+        logger.info(
+            "Join skipped because user already present gathering_id=%s actor_user_id=%s",
+            gathering.id,
+            current_user.id,
+        )
 
-    return {"message": "Joined gathering", "participant_user_ids": gathering.participant_user_ids}
+    return {
+        "message": "Joined gathering",
+        "participant_user_ids": gathering.participant_user_ids,
+    }
 
 
 @router.post("/{gathering_id}/leave")
@@ -240,7 +318,11 @@ async def leave_gathering(
 ):
     gathering = await Gathering.get(gathering_id)
     if not gathering:
-        logger.warning("Leave target gathering not found gathering_id=%s actor_user_id=%s", gathering_id, current_user.id)
+        logger.warning(
+            "Leave target gathering not found gathering_id=%s actor_user_id=%s",
+            gathering_id,
+            current_user.id,
+        )
         raise HTTPException(status_code=404, detail="Gathering not found")
 
     user_id = str(current_user.id)
@@ -249,12 +331,27 @@ async def leave_gathering(
         gathering.updated_at = datetime.now(UTC)
         if not gathering.participant_user_ids:  # If no participants left
             await gathering.delete()
-            logger.warning("Gathering deleted after final participant left gathering_id=%s actor_user_id=%s", gathering.id, current_user.id)
+            logger.warning(
+                "Gathering deleted after final participant left gathering_id=%s actor_user_id=%s",
+                gathering.id,
+                current_user.id,
+            )
             return {"message": "Left gathering and gathering deleted (no participants)"}
         else:
             await gathering.save()
-            logger.info("Left gathering gathering_id=%s actor_user_id=%s", gathering.id, current_user.id)
+            logger.info(
+                "Left gathering gathering_id=%s actor_user_id=%s",
+                gathering.id,
+                current_user.id,
+            )
     else:
-        logger.warning("Leave skipped because user was not a participant gathering_id=%s actor_user_id=%s", gathering.id, current_user.id)
+        logger.warning(
+            "Leave skipped because user was not a participant gathering_id=%s actor_user_id=%s",
+            gathering.id,
+            current_user.id,
+        )
 
-    return {"message": "Left gathering", "participant_user_ids": gathering.participant_user_ids}
+    return {
+        "message": "Left gathering",
+        "participant_user_ids": gathering.participant_user_ids,
+    }

@@ -16,20 +16,42 @@ const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
   return { value, display };
 });
 
+const CENTRAL_TZ = 'America/Chicago';
+
+function getCentralOffsetStr(refDate) {
+  const tzPart = new Intl.DateTimeFormat('en-US', {
+    timeZone: CENTRAL_TZ,
+    timeZoneName: 'shortOffset',
+  }).formatToParts(refDate).find(p => p.type === 'timeZoneName')?.value ?? 'GMT-5';
+  const hours = parseInt(tzPart.replace('GMT', '')) || -5;
+  return `${hours <= 0 ? '-' : '+'}${String(Math.abs(hours)).padStart(2, '0')}:00`;
+}
+
 function toISO(date, time) {
   if (!date) return null;
-  return new Date(`${date}T${time || '00:00'}`).toISOString();
+  const timeStr = time || '00:00';
+  const [y, m, d] = date.split('-').map(Number);
+  const offsetStr = getCentralOffsetStr(new Date(Date.UTC(y, m - 1, d, 12, 0)));
+  return new Date(`${date}T${timeStr}:00${offsetStr}`).toISOString();
 }
 
 function fromISO(isoStr) {
   if (!isoStr) return { date: '', time: '09:00' };
-  const d = new Date(isoStr);
-  const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  const slot = Math.round((d.getHours() * 60 + d.getMinutes()) / 30) * 30;
-  const h = Math.floor(slot / 60) % 24;
-  const m = slot % 60;
-  const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-  return { date, time };
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: CENTRAL_TZ,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    }).formatToParts(new Date(isoStr)).map(({ type, value }) => [type, value])
+  );
+  const h = parts.hour === '24' ? 0 : +parts.hour;
+  const slot = Math.round((h * 60 + +parts.minute) / 30) * 30;
+  const rh = Math.floor(slot / 60) % 24;
+  const rm = slot % 60;
+  return {
+    date: `${parts.year}-${parts.month}-${parts.day}`,
+    time: `${String(rh).padStart(2, '0')}:${String(rm).padStart(2, '0')}`,
+  };
 }
 
 function CreateGatheringModal({ places, onClose, onCreated }) {
@@ -73,7 +95,7 @@ function CreateGatheringModal({ places, onClose, onCreated }) {
       if (res.ok) {
         const created = await res.json();
         setStatus('saved');
-        setTimeout(() => { onCreated(created); onClose(); }, 1000);
+        setTimeout(() => { window.dispatchEvent(new CustomEvent('gathering-created')); onCreated(created); onClose(); }, 1000);
       } else {
         setStatus('error');
         setTimeout(() => setStatus(''), 3000);
@@ -414,6 +436,17 @@ export default function Gatherings() {
       .then(r => r.json())
       .then(setGatherings)
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    function refetch() {
+      fetch(`${API}/penguins/gatherings`)
+        .then(r => r.json())
+        .then(setGatherings)
+        .catch(() => {});
+    }
+    window.addEventListener('gathering-created', refetch);
+    return () => window.removeEventListener('gathering-created', refetch);
   }, []);
 
   const myGatherings = gatherings.filter(g => g.host_user_id === user?.id && (g.status === 'active' || g.status === 'scheduled') && isCurrentOrUpcoming(g));

@@ -116,7 +116,7 @@ export default function BroadcastModal({ onConfirm, onClose }) {
           body: JSON.stringify({
             title: form.title,
             place_id: form.place_id,
-            datetime_start: toISO(form.start_date, form.start_time),
+            datetime_start: new Date().toISOString(),
             datetime_end: form.end_date ? toISO(form.end_date, form.end_time) : null,
             description: form.description || null,
             visibility: form.visibility,
@@ -128,6 +128,7 @@ export default function BroadcastModal({ onConfirm, onClose }) {
           return;
         }
         const created = await res.json();
+        window.dispatchEvent(new CustomEvent('gathering-created'));
         onConfirm(created.id);
       } catch {
         setError('Failed to create gathering.');

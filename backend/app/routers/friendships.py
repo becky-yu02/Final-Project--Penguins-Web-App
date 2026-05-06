@@ -39,7 +39,17 @@ async def send_friend_request(
     )
 
     if existing:
-        logger.warning("Duplicate friend request rejected requester_id=%s receiver_id=%s", requester_id, receiver_id)
+        if existing.status == FriendshipStatus.DECLINED:
+            existing.requester_id = requester_id
+            existing.receiver_id = receiver_id
+            existing.status = FriendshipStatus.PENDING
+            existing.datetime_requested = datetime.now(UTC)
+            existing.datetime_responded = None
+            existing.updated_at = datetime.now(UTC)
+            await existing.save()
+            logger.info("Re-sent declined friend request friendship_id=%s requester_id=%s receiver_id=%s", existing.id, requester_id, receiver_id)
+            return {"message": "Friend request sent", "id": str(existing.id)}
+        logger.warning("Duplicate friend request rejected requester_id=%s receiver_id=%s status=%s", requester_id, receiver_id, existing.status)
         raise HTTPException(status_code=400, detail="Friend request already exists")
 
     if receiver_id in current_user.friend_ids:
