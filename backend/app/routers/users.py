@@ -1,11 +1,12 @@
 import logging
 from datetime import datetime, UTC
 
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, File, HTTPException, Depends, Query, Request, UploadFile
 from starlette import status
 
 from app.core.dependencies import get_current_user
 from app.core.authz import require_admin
+from app.core.uploads import save_image_upload
 from app.models.location import Location
 from app.models.user import User, UserRole
 from app.schemas.user import UserUpdateRequest, UserAccessUpdate
@@ -131,6 +132,21 @@ async def update_me(
     await current_user.save()
     logger.info("Updated current user profile user_id=%s fields=%s", current_user.id, updated_fields)
     return to_user_private(current_user)
+
+
+@router.post("/me/profile-picture")
+async def upload_profile_picture(
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+):
+    image_path = await save_image_upload(file, "profiles")
+    image_url = str(request.base_url).rstrip("/") + image_path
+    current_user.profile_image_url = image_url
+    current_user.updated_at = datetime.now(UTC)
+    await current_user.save()
+    logger.info("Uploaded profile picture user_id=%s", current_user.id)
+    return {"profile_image_url": image_url, "user": to_user_private(current_user)}
 
 
 @router.delete("/me")

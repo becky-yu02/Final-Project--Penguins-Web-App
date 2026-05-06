@@ -1,9 +1,10 @@
 import logging
 from datetime import datetime, UTC
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
 
 from app.core.dependencies import get_current_user, get_current_user_optional, check_note_permission
+from app.core.uploads import save_image_upload
 from app.models.location import Location, CommunityNote, CommunitySummary, AmenityOverride
 from app.models.user import User, UserRole
 from app.schemas.location import (
@@ -54,6 +55,7 @@ def to_place_summary(place: Location):
         "address": place.address,
         "type_of_place": place.type_of_place,
         "coordinates": place.coordinates,
+        "photo_urls": place.photo_urls,
         "community_summary": place.community_summary,
     }
 
@@ -74,6 +76,9 @@ def apply_place_updates(place: Location, payload: PlaceUpdateRequest) -> list[st
     if "coordinates" in update_data:
         place.coordinates = payload.coordinates
         updated_fields.append("coordinates")
+    if "photo_urls" in update_data:
+        place.photo_urls = payload.photo_urls
+        updated_fields.append("photo_urls")
     if "admin_approved" in update_data:
         place.admin_approved = payload.admin_approved
         updated_fields.append("admin_approved")
@@ -187,6 +192,27 @@ async def update_place(
     await place.save()
     logger.info("Updated place place_id=%s actor_user_id=%s fields=%s", place.id, current_user.id, updated_fields)
     return place
+
+
+@router.post("/{place_id}/photos")
+async def upload_place_photo(
+    place_id: str,
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+):
+    place = await Location.get(place_id)
+    if not place:
+        logger.warning("Photo upload target place not found place_id=%s actor_user_id=%s", place_id, current_user.id)
+        raise HTTPException(status_code=404, detail="Place not found")
+
+    image_path = await save_image_upload(file, "places")
+    image_url = str(request.base_url).rstrip("/") + image_path
+    place.photo_urls.append(image_url)
+    place.updated_at = datetime.now(UTC)
+    await place.save()
+    logger.info("Uploaded place photo place_id=%s actor_user_id=%s", place.id, current_user.id)
+    return {"image_url": image_url, "photo_urls": place.photo_urls}
 
 
 @router.post("/{place_id}/notes")
