@@ -1,6 +1,6 @@
-import { useRef, useState, useEffect, useLayoutEffect } from 'react';
+﻿import { useRef, useState, useEffect, useLayoutEffect } from 'react';
 import AmenitiesRow from './AmenitiesRow';
-import vibeOptions from '../utils/vibe_options.json';
+import options from '../utils/options.json';
 import AddNoteModal from './AddNoteModal';
 import { useUser, useToggleFavorite } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
@@ -11,6 +11,8 @@ import FavIcon from '../assets/fav.svg?react';
 import NotFavIcon from '../assets/not_fav.svg?react';
 import HeartBrokenIcon from '../assets/heart_broken.svg?react';
 import WalkIcon from '../assets/walk.svg?react';
+import StarIcon from '../assets/star.svg?react';
+import LoadingIcon from '../assets/loading.svg?react';
 
 const API = 'http://127.0.0.1:8000';
 
@@ -50,7 +52,7 @@ function formatDate(isoStr) {
   });
 }
 
-export default function PlaceCard({ place, gatherings = [], highlighted = false, userLocation = null }) {
+export default function PlaceCard({ place, gatherings = [], highlighted = false, userLocation = null, locationLoading = false }) {
   const user = useUser();
   const { token } = useAuth();
   const toggleFavorite = useToggleFavorite();
@@ -114,7 +116,7 @@ export default function PlaceCard({ place, gatherings = [], highlighted = false,
   const vibes = Array.isArray(place.community_summary?.overall_feel)
     ? place.community_summary.overall_feel
     : (place.community_summary?.overall_feel ? [place.community_summary.overall_feel] : []);
-  const vibeColorMap = Object.fromEntries(vibeOptions.vibes.map(v => [v.label.toLowerCase(), v.color]));
+  const vibeColorMap = Object.fromEntries(options.vibes.map(v => [v.label.toLowerCase(), v.color]));
 
   let walkMins = null;
   if (userLocation && place.coordinates) {
@@ -158,7 +160,7 @@ export default function PlaceCard({ place, gatherings = [], highlighted = false,
                 className="small fw-semibold text-nowrap"
                 title="Community rating based on visitor notes"
               >
-                {rating.toFixed(1)} ★
+                {rating.toFixed(1)} <StarIcon width={14} height={14} style={{ verticalAlign: '-1px' }} />
               </span>
             )}
           </div>
@@ -177,7 +179,7 @@ export default function PlaceCard({ place, gatherings = [], highlighted = false,
         </div>
 
         {/* Row 3: Vibes left, walk time right */}
-        {(vibes.length > 0 || walkMins !== null) && (
+        {(vibes.length > 0 || walkMins !== null || (locationLoading && place.coordinates)) && (
           <div className="d-flex justify-content-between align-items-center">
             <div className="d-flex flex-wrap gap-1">
               {vibes.map(v => (
@@ -190,12 +192,14 @@ export default function PlaceCard({ place, gatherings = [], highlighted = false,
                 </span>
               ))}
             </div>
-            {walkMins !== null && (
+            {walkMins !== null ? (
               <div className="d-flex align-items-center gap-1 text-muted small flex-shrink-0 ms-2">
                 <WalkIcon width={16} height={16} />
                 <span>{walkMins} min</span>
               </div>
-            )}
+            ) : (locationLoading && place.coordinates) ? (
+              <LoadingIcon width={16} height={16} className="text-muted flex-shrink-0 ms-2" />
+            ) : null}
           </div>
         )}
       </div>
@@ -238,8 +242,8 @@ export default function PlaceCard({ place, gatherings = [], highlighted = false,
                   </div>
                   <p className="small text-muted mb-0">
                     {formatDate(g.datetime_start)}
-                    {g.datetime_end && ` – ${formatDate(g.datetime_end)}`}
-                    {' · '}{g.participant_user_ids?.length ?? 0} going
+                    {g.datetime_end && ` â€“ ${formatDate(g.datetime_end)}`}
+                    {' Â· '}{g.participant_user_ids?.length ?? 0} going
                   </p>
                 </div>
               ))}

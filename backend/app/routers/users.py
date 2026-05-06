@@ -76,6 +76,13 @@ def apply_user_updates(user: User, payload: UserUpdateRequest) -> list[str]:
     return updated_fields
 
 
+@router.get("")
+async def list_users(admin_user: User = Depends(require_admin)):
+    users = await User.find_all().to_list()
+    logger.info("Listed all users admin_user_id=%s count=%s", admin_user.id, len(users))
+    return [to_user_private(u) for u in users]
+
+
 @router.get("/search")
 async def search_users(
     q: str = Query(min_length=1, max_length=50),

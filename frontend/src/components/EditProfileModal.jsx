@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import options from '../utils/options.json';
 
 const API = 'http://127.0.0.1:8000';
-const PLACE_TYPES = ['academic', 'cafe', 'library', 'student union', 'restaurant', 'park', 'other'];
 
 export default function EditProfileModal({ onClose }) {
   const { token } = useAuth();
@@ -147,11 +147,11 @@ export default function EditProfileModal({ onClose }) {
               <div className="mb-4">
                 <label className="form-label">Preferred Place Types</label>
                 <div className="d-flex gap-2 flex-wrap">
-                  {PLACE_TYPES.map(type => (
-                    <button key={type} type="button"
-                      className={`btn btn-sm text-capitalize ${preferences.preferred_types.includes(type) ? 'btn-dark' : 'btn-outline-secondary'}`}
-                      onClick={() => toggleType(type)}>
-                      {type}
+                  {options.place_types.map(({ value, label }) => (
+                    <button key={value} type="button"
+                      className={`btn btn-sm ${preferences.preferred_types.includes(value) ? 'btn-dark' : 'btn-outline-secondary'}`}
+                      onClick={() => toggleType(value)}>
+                      {label}
                     </button>
                   ))}
                 </div>
@@ -178,7 +178,7 @@ export default function EditProfileModal({ onClose }) {
             <div className="modal-footer">
               <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
               <button type="button" className="btn btn-primary" onClick={handleSave} disabled={saveStatus === 'saving'}>
-                {saveStatus === 'saving' ? 'Saving…' : 'Save Changes'}
+                {saveStatus === 'saving' ? 'Savingâ€¦' : 'Save Changes'}
               </button>
             </div>
           </div>

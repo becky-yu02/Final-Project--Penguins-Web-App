@@ -96,6 +96,7 @@ def seed():
 
     # ── Locations ──────────────────────────────────────────────────────────────
     locations = [convert_extended_json(doc) for doc in load_json("locations.json")]
+    db.locations.delete_many({})
     u, m = upsert_all(db.locations, locations)
     print(f"Locations:  {u} inserted, {m} updated.")
 

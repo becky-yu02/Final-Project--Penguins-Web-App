@@ -14,7 +14,7 @@
         "parking_available": false,
         "food_available": false,
         "rating": 4,
-        "feel": "focused",
+        "feel": ["focused"],
         "comment": "Great quiet study space on the upper floors. Wifi is solid and there are outlets at most desks.",
         "image_url": null,
         "created_at": { "$date": "2026-04-15T10:30:00.000Z" }
@@ -27,7 +27,7 @@
         "parking_available": false,
         "food_available": false,
         "rating": 4,
-        "feel": "focused",
+        "feel": ["focused"],
         "comment": "Basement study rooms are perfect for group work. Book them in advance through the library website!",
         "image_url": null,
         "created_at": { "$date": "2026-04-20T14:00:00.000Z" }
@@ -60,7 +60,7 @@
         "parking_available": false,
         "food_available": true,
         "rating": 5,
-        "feel": "cozy",
+        "feel": ["cozy"],
         "comment": "My go-to spot. Wifi password is on the chalkboard. Outlets along the back wall. Gets busy around 10am.",
         "image_url": null,
         "created_at": { "$date": "2026-03-10T09:00:00.000Z" }
@@ -73,7 +73,7 @@
         "parking_available": false,
         "food_available": true,
         "rating": 4,
-        "feel": "busy",
+        "feel": ["busy"],
         "comment": "Outlets only on the back wall — grab a seat early if you need to plug in. Coffee is excellent.",
         "image_url": null,
         "created_at": { "$date": "2026-04-02T11:15:00.000Z" }
@@ -86,7 +86,7 @@
         "parking_available": false,
         "food_available": true,
         "rating": 5,
-        "feel": "cozy",
+        "feel": ["cozy"],
         "comment": "Cozy vibe, great for solo work or small groups. The upstairs loft is quieter.",
         "image_url": null,
         "created_at": { "$date": "2026-04-28T08:45:00.000Z" }
@@ -119,7 +119,7 @@
         "parking_available": false,
         "food_available": false,
         "rating": 4,
-        "feel": "quiet",
+        "feel": ["quiet"],
         "comment": "Super quiet on floors 3 and 4. Outlets everywhere. Perfect for finals crunch.",
         "image_url": null,
         "created_at": { "$date": "2026-04-10T16:00:00.000Z" }
@@ -132,7 +132,7 @@
         "parking_available": false,
         "food_available": false,
         "rating": 5,
-        "feel": "quiet",
+        "feel": ["quiet"],
         "comment": "The 24/7 room on the main floor is a lifesaver during dead week. Always busy but dependable.",
         "image_url": null,
         "created_at": { "$date": "2026-04-22T22:30:00.000Z" }
@@ -165,7 +165,7 @@
         "parking_available": false,
         "food_available": true,
         "rating": 4,
-        "feel": "lively",
+        "feel": ["lively"],
         "comment": "Tons of seating and food options. Can get loud during lunch but calms down in the afternoon.",
         "image_url": null,
         "created_at": { "$date": "2026-03-25T13:30:00.000Z" }
@@ -178,7 +178,7 @@
         "parking_available": false,
         "food_available": true,
         "rating": 4,
-        "feel": "lively",
+        "feel": ["lively"],
         "comment": "The River Room lounge on the second floor is underrated — great views and usually not crowded.",
         "image_url": null,
         "created_at": { "$date": "2026-04-05T15:00:00.000Z" }
@@ -211,7 +211,7 @@
         "parking_available": false,
         "food_available": true,
         "rating": 5,
-        "feel": "cozy",
+        "feel": ["cozy"],
         "comment": "One of the best spots in Iowa City. Very few outlets so bring a full battery. The cafe upstairs is magical.",
         "image_url": null,
         "created_at": { "$date": "2026-04-01T10:00:00.000Z" }
@@ -224,7 +224,7 @@
         "parking_available": false,
         "food_available": true,
         "rating": 5,
-        "feel": "charming",
+        "feel": ["charming"],
         "comment": "Charming independent bookstore cafe. Great for a solo work session or a low-key meetup.",
         "image_url": null,
         "created_at": { "$date": "2026-04-18T17:00:00.000Z" }
@@ -257,7 +257,7 @@
         "parking_available": true,
         "food_available": false,
         "rating": 4,
-        "feel": "quiet",
+        "feel": ["quiet"],
         "comment": "Underrated gem. Free parking, fast wifi, quiet study rooms you can reserve online. Worth the short drive.",
         "image_url": null,
         "created_at": { "$date": "2026-04-08T14:30:00.000Z" }
@@ -290,7 +290,7 @@
         "parking_available": false,
         "food_available": true,
         "rating": 4,
-        "feel": "casual",
+        "feel": ["casual"],
         "comment": "Solid morning spot. Wifi works fine, not many outlets. Bagels are great. Gets crowded 8-10am.",
         "image_url": null,
         "created_at": { "$date": "2026-04-25T08:00:00.000Z" }
@@ -303,7 +303,7 @@
         "parking_available": false,
         "food_available": true,
         "rating": 4,
-        "feel": "busy",
+        "feel": ["busy"],
         "comment": "Quick meetings or a casual study session before class. Don't count on finding an outlet.",
         "image_url": null,
         "created_at": { "$date": "2026-04-29T07:45:00.000Z" }

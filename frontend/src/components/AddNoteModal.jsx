@@ -1,6 +1,7 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import vibeOptions from '../utils/vibe_options.json';
+import options from '../utils/options.json';
+import StarIcon from '../assets/star.svg?react';
 
 const API = 'http://127.0.0.1:8000';
 
@@ -38,7 +39,7 @@ export default function AddNoteModal({ place, onClose }) {
     parking_available: null,
     food_available: null,
     rating: null,
-    feel: '',
+    feel: [],
     comment: '',
     image_url: '',
   });
@@ -56,7 +57,7 @@ export default function AddNoteModal({ place, onClose }) {
       parking_available: note.parking_available,
       food_available: note.food_available,
       rating: note.rating,
-      feel: note.feel || null,
+      feel: note.feel.length > 0 ? note.feel : null,
       comment: note.comment || null,
       image_url: note.image_url || null,
     };
@@ -89,7 +90,7 @@ export default function AddNoteModal({ place, onClose }) {
         <div className="modal-dialog">
           <div className="modal-content">
             <div className="modal-header">
-              <h5 className="modal-title">Add Note — {place.name}</h5>
+              <h5 className="modal-title">Add Note â€” {place.name}</h5>
               <button type="button" className="btn-close" onClick={onClose} />
             </div>
             <div className="modal-body">
@@ -107,34 +108,41 @@ export default function AddNoteModal({ place, onClose }) {
                     <button
                       key={star}
                       type="button"
-                      className="btn btn-link p-0 lh-1 fs-5"
+                      className="btn btn-link p-0 lh-1"
                       style={{ color: note.rating >= star ? '#ffc107' : '#dee2e6' }}
                       onClick={() => setField('rating', note.rating === star ? null : star)}
                       aria-label={`${star} star${star !== 1 ? 's' : ''}`}
                     >
-                      ★
+                      <StarIcon width={20} height={20} />
                     </button>
                   ))}
                 </div>
               </div>
               <div className="mb-3">
                 <label className="form-label">
-                  Vibe <span className="text-muted fw-normal">(optional)</span>
+                  Vibe <span className="text-muted fw-normal">({note.feel.length}/3)</span>
                 </label>
                 <div className="d-flex flex-wrap gap-2">
-                  {vibeOptions.vibes.map(({ label, color }) => {
-                    const selected = note.feel === label;
+                  {options.vibes.map(({ label, color }) => {
+                    const selected = note.feel.includes(label);
+                    const atLimit = note.feel.length >= 3;
                     return (
                       <button
                         key={label}
                         type="button"
-                        onClick={() => setField('feel', selected ? '' : label)}
+                        disabled={!selected && atLimit}
+                        onClick={() => setField('feel',
+                          selected
+                            ? note.feel.filter(f => f !== label)
+                            : [...note.feel, label]
+                        )}
                         style={{
                           backgroundColor: selected ? color : 'transparent',
                           borderColor: color,
                           color: selected ? '#fff' : color,
                           borderWidth: 1,
                           borderStyle: 'solid',
+                          opacity: !selected && atLimit ? 0.35 : 1,
                         }}
                         className="btn btn-sm"
                       >
@@ -149,7 +157,7 @@ export default function AddNoteModal({ place, onClose }) {
                 <textarea
                   className="form-control"
                   rows={3}
-                  placeholder="Share your experience…"
+                  placeholder="Share your experienceâ€¦"
                   value={note.comment}
                   onChange={e => setField('comment', e.target.value)}
                 />
@@ -161,7 +169,7 @@ export default function AddNoteModal({ place, onClose }) {
                 <input
                   type="url"
                   className="form-control"
-                  placeholder="https://…"
+                  placeholder="https://â€¦"
                   value={note.image_url}
                   onChange={e => setField('image_url', e.target.value)}
                 />
@@ -180,9 +188,9 @@ export default function AddNoteModal({ place, onClose }) {
                 type="button"
                 className="btn btn-primary"
                 onClick={handleSubmit}
-                disabled={saveStatus === 'saving'}
+                disabled={saveStatus === 'saving' || note.feel.length === 0}
               >
-                {saveStatus === 'saving' ? 'Submitting…' : 'Submit Note'}
+                {saveStatus === 'saving' ? 'Submittingâ€¦' : 'Submit Note'}
               </button>
             </div>
           </div>

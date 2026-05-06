@@ -16,12 +16,13 @@ export default function Home() {
   const [places, setPlaces] = useState([]);
   const [gatherings, setGatherings] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
+  const [locationLoading, setLocationLoading] = useState(true);
   const cardRefs = useRef({});
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
-      pos => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => {},
+      pos => { setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setLocationLoading(false); },
+      () => setLocationLoading(false),
     );
   }, []);
 
@@ -161,7 +162,7 @@ export default function Home() {
                       onClick={() => setSelectedPlaceId(p.id === selectedPlaceId ? null : p.id)}
                       style={{ cursor: 'pointer' }}
                     >
-                      <PlaceCard place={p} gatherings={gatherings} highlighted={p.id === selectedPlaceId} userLocation={userLocation} />
+                      <PlaceCard place={p} gatherings={gatherings} highlighted={p.id === selectedPlaceId} userLocation={userLocation} locationLoading={locationLoading} />
                     </div>
                   ))}
                 </div>

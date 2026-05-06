@@ -1,13 +1,13 @@
-//!! Left here for reference and potential future use but cannot be visted
+﻿//!! Left here for reference and potential future use but cannot be visted
 //!! through site UI, have to use /settings URL directly
 
 
 import { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
+import options from '../utils/options.json';
 
 const API = 'http://127.0.0.1:8000';
-const PLACE_TYPES = ['academic', 'cafe', 'library', 'student union', 'restaurant', 'park', 'other'];
 
 export default function Settings() {
   const { token } = useAuth();
@@ -171,14 +171,14 @@ export default function Settings() {
             <div>
               <label className="form-label">Preferred Place Types</label>
               <div className="d-flex gap-2 flex-wrap">
-                {PLACE_TYPES.map(type => (
+                {options.place_types.map(({ value, label }) => (
                   <button
-                    key={type}
+                    key={value}
                     type="button"
-                    className={`btn btn-sm text-capitalize ${preferences.preferred_types.includes(type) ? 'btn-dark' : 'btn-outline-secondary'}`}
-                    onClick={() => toggleType(type)}
+                    className={`btn btn-sm ${preferences.preferred_types.includes(value) ? 'btn-dark' : 'btn-outline-secondary'}`}
+                    onClick={() => toggleType(value)}
                   >
-                    {type}
+                    {label}
                   </button>
                 ))}
               </div>
@@ -219,7 +219,7 @@ export default function Settings() {
         {saveStatus === 'error' && <div className="alert alert-danger py-2 mb-3">Failed to save. Please try again.</div>}
 
         <button type="button" className="btn btn-primary w-100" onClick={handleSave} disabled={saveStatus === 'saving'}>
-          {saveStatus === 'saving' ? 'Saving…' : 'Save Changes'}
+          {saveStatus === 'saving' ? 'Savingâ€¦' : 'Save Changes'}
         </button>
       </div>
     </>

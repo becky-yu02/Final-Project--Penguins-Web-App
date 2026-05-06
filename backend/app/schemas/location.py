@@ -16,3 +16,4 @@ class PlaceUpdateRequest(BaseModel):
     address: Optional[str] = None
     type_of_place: Optional[str] = None
     coordinates: Optional[Coordinates] = None
+    admin_approved: Optional[bool] = None

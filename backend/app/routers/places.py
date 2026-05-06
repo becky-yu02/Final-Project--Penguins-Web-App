@@ -25,7 +25,7 @@ def recompute_summary(notes: list[CommunityNote]) -> CommunitySummary:
         return (opinions.count(True) / len(opinions)) >= 0.5
 
     ratings = [n.rating for n in notes if n.rating is not None]
-    feels = list(dict.fromkeys(f for n in notes if (f := n.feel) is not None))
+    feels = list(dict.fromkeys(f for n in notes if n.feel for f in n.feel))
 
     return CommunitySummary(
         wifi_available=majority("wifi_available"),
@@ -64,6 +64,9 @@ def apply_place_updates(place: Location, payload: PlaceUpdateRequest) -> list[st
     if "coordinates" in update_data:
         place.coordinates = payload.coordinates
         updated_fields.append("coordinates")
+    if "admin_approved" in update_data:
+        place.admin_approved = payload.admin_approved
+        updated_fields.append("admin_approved")
 
     return updated_fields
 
@@ -159,6 +162,10 @@ async def update_place(
     if not place:
         logger.warning("Update target place not found place_id=%s actor_user_id=%s", place_id, current_user.id)
         raise HTTPException(status_code=404, detail="Place not found")
+
+    if payload.admin_approved is not None and current_user.role != UserRole.ADMIN:
+        logger.warning("Non-admin attempted to set admin_approved place_id=%s actor_user_id=%s", place_id, current_user.id)
+        raise HTTPException(status_code=403, detail="Admin access required to approve places.")
 
     updated_fields = apply_place_updates(place, payload)
     place.updated_at = datetime.now(UTC)

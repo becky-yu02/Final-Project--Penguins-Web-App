@@ -20,7 +20,7 @@ class CommunityNote(BaseModel):
     parking_available: Optional[bool] = None
     food_available: Optional[bool] = None
     rating: Optional[int] = None
-    feel: Optional[str] = None
+    feel: Optional[List[str]] = None
     comment: Optional[str] = None
     image_url: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))

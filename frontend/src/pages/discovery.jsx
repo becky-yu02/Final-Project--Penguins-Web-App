@@ -1,11 +1,12 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import PlaceCard from '../components/PlaceCard';
 import MapView from '../components/MapView';
 import { useAuth } from '../context/AuthContext';
 import { useUser } from '../context/UserContext';
 import { calculateMatchRating } from '../utils/match';
-import vibeOptions from '../utils/vibe_options.json';
+import options from '../utils/options.json';
+import StarIcon from '../assets/star.svg?react';
 
 const API = 'http://127.0.0.1:8000';
 
@@ -19,10 +20,6 @@ function hasNoPreferences(prefs) {
     (!prefs.preferred_types || prefs.preferred_types.length === 0)
   );
 }
-
-const PLACE_TYPE_OPTIONS = [
-  'cafe', 'library', 'study_space', 'student_union', 'bar', 'restaurant', 'park', 'other',
-];
 
 function AmenityToggle({ label, value, onToggle }) {
   return (
@@ -56,7 +53,7 @@ function SuggestPlaceModal({ token, onClose }) {
     parking_available: null,
     food_available: null,
     rating: null,
-    feel: '',
+    feel: [],
     comment: '',
     image_url: '',
   });
@@ -81,7 +78,7 @@ function SuggestPlaceModal({ token, onClose }) {
       } else {
         setCoordinates(null);
         setCoordSource(null);
-        setCoordError('Address not found — coordinates will be omitted.');
+        setCoordError('Address not found â€” coordinates will be omitted.');
       }
     });
   }
@@ -116,7 +113,7 @@ function SuggestPlaceModal({ token, onClose }) {
     );
   }
 
-  const canSubmit = form.name.trim() && form.address.trim() && form.type_of_place && note.comment.trim();
+  const canSubmit = form.name.trim() && form.address.trim() && form.type_of_place && note.comment.trim() && note.feel.length > 0;
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -144,7 +141,7 @@ function SuggestPlaceModal({ token, onClose }) {
           parking_available: note.parking_available,
           food_available: note.food_available,
           rating: note.rating,
-          feel: note.feel || null,
+          feel: note.feel.length > 0 ? note.feel : null,
           comment: note.comment.trim(),
           image_url: note.image_url || null,
         }),
@@ -209,7 +206,7 @@ function SuggestPlaceModal({ token, onClose }) {
                     disabled={geolocating}
                     title="Use my current location instead"
                   >
-                    {geolocating ? 'Locating…' : "I'm here"}
+                    {geolocating ? 'Locatingâ€¦' : "I'm here"}
                   </button>
                 </div>
               </div>
@@ -220,10 +217,8 @@ function SuggestPlaceModal({ token, onClose }) {
                   value={form.type_of_place}
                   onChange={e => setFormField('type_of_place', e.target.value)}
                 >
-                  <option value="">Select a type…</option>
-                  {PLACE_TYPE_OPTIONS.map(t => (
-                    <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>
-                  ))}
+                  <option value="">Select a typeâ€¦</option>
+                  {options.place_types.map(({ value, label }) => (<option key={value} value={value}>{label}</option>))}
                 </select>
               </div>
 
@@ -242,33 +237,40 @@ function SuggestPlaceModal({ token, onClose }) {
                     <button
                       key={star}
                       type="button"
-                      className="btn btn-link p-0 lh-1 fs-5"
+                      className="btn btn-link p-0 lh-1"
                       style={{ color: note.rating >= star ? '#ffc107' : '#dee2e6' }}
                       onClick={() => setNoteField('rating', note.rating === star ? null : star)}
                       aria-label={`${star} star${star !== 1 ? 's' : ''}`}
-                    >★</button>
+                    ><StarIcon width={20} height={20} /></button>
                   ))}
                 </div>
               </div>
 
               <div className="mb-3">
                 <label className="form-label fw-semibold">
-                  Vibe <span className="text-muted fw-normal">(optional)</span>
+                  Vibe <span className="text-muted fw-normal">({note.feel.length}/3)</span>
                 </label>
                 <div className="d-flex flex-wrap gap-2">
-                  {vibeOptions.vibes.map(({ label, color }) => {
-                    const selected = note.feel === label;
+                  {options.vibes.map(({ label, color }) => {
+                    const selected = note.feel.includes(label);
+                    const atLimit = note.feel.length >= 3;
                     return (
                       <button
                         key={label}
                         type="button"
-                        onClick={() => setNoteField('feel', selected ? '' : label)}
+                        disabled={!selected && atLimit}
+                        onClick={() => setNoteField('feel',
+                          selected
+                            ? note.feel.filter(f => f !== label)
+                            : [...note.feel, label]
+                        )}
                         style={{
                           backgroundColor: selected ? color : 'transparent',
                           borderColor: color,
                           color: selected ? '#fff' : color,
                           borderWidth: 1,
                           borderStyle: 'solid',
+                          opacity: !selected && atLimit ? 0.35 : 1,
                         }}
                         className="btn btn-sm"
                       >{label}</button>
@@ -282,7 +284,7 @@ function SuggestPlaceModal({ token, onClose }) {
                 <textarea
                   className="form-control"
                   rows={3}
-                  placeholder="Share what makes this spot worth visiting…"
+                  placeholder="Share what makes this spot worth visitingâ€¦"
                   value={note.comment}
                   onChange={e => setNoteField('comment', e.target.value)}
                 />
@@ -295,7 +297,7 @@ function SuggestPlaceModal({ token, onClose }) {
                 <input
                   type="url"
                   className="form-control"
-                  placeholder="https://…"
+                  placeholder="https://â€¦"
                   value={note.image_url}
                   onChange={e => setNoteField('image_url', e.target.value)}
                 />
@@ -317,7 +319,7 @@ function SuggestPlaceModal({ token, onClose }) {
                 onClick={handleSubmit}
                 disabled={status === 'saving' || !canSubmit}
               >
-                {status === 'saving' ? 'Submitting…' : 'Submit Suggestion'}
+                {status === 'saving' ? 'Submittingâ€¦' : 'Submit Suggestion'}
               </button>
             </div>
           </div>
@@ -340,6 +342,7 @@ export default function Discovery() {
   const [places, setPlaces] = useState([]);
   const [gatherings, setGatherings] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
+  const [locationLoading, setLocationLoading] = useState(true);
   const [prefs, setPrefs] = useState({
     preferred_types: [],
     max_distance_miles: '',
@@ -351,8 +354,8 @@ export default function Discovery() {
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
-      pos => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => { },
+      pos => { setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setLocationLoading(false); },
+      () => setLocationLoading(false),
     );
     fetch(`${API}/penguins/places`)
       .then(r => r.json())
@@ -379,11 +382,6 @@ export default function Discovery() {
       })
       .catch(() => { });
   }, [token]);
-
-  const PLACE_TYPES = useMemo(
-    () => [...new Set(places.map(p => p.type_of_place))].sort(),
-    [places]
-  );
 
   function dismissModal() {
     if (userId) localStorage.setItem(`prefs_modal_seen_${userId}`, '1');
@@ -473,26 +471,40 @@ export default function Discovery() {
 
           <div className="mb-4 d-flex gap-2 flex-wrap align-items-center">
             <button
-              className={`btn btn-sm ${!selectedType ? 'btn-dark' : 'btn-outline-secondary'}`}
+              className="btn btn-sm"
+              style={!selectedType
+                ? { backgroundColor: '#212529', color: '#fff', borderColor: '#212529' }
+                : { backgroundColor: 'transparent', color: '#6c757d', borderColor: '#6c757d', borderWidth: 1, borderStyle: 'solid' }
+              }
               onClick={() => setSelectedType('')}
             >
               All
             </button>
-            {PLACE_TYPES.map(type => (
-              <button
-                key={type}
-                className={`btn btn-sm ${selectedType === type ? 'btn-dark' : 'btn-outline-secondary'} text-capitalize`}
-                onClick={() => setSelectedType(type)}
-              >
-                {type}
-              </button>
-            ))}
+            {options.place_types.map(({ value, label, color }) => {
+              const active = selectedType === value;
+              return (
+                <button
+                  key={value}
+                  className="btn btn-sm"
+                  style={{
+                    backgroundColor: active ? color : 'transparent',
+                    borderColor: color,
+                    color: active ? '#fff' : color,
+                    borderWidth: 1,
+                    borderStyle: 'solid',
+                  }}
+                  onClick={() => setSelectedType(active ? '' : value)}
+                >
+                  {label}
+                </button>
+              );
+            })}
             <div className="vr mx-1" />
             <button
               className={`btn btn-sm ${showFavoritesOnly ? 'btn-warning' : 'btn-outline-warning'}`}
               onClick={() => setShowFavoritesOnly(prev => !prev)}
             >
-              ★ Favorites
+              <StarIcon width={14} height={14} style={{ verticalAlign: '-1px' }} /> Favorites
             </button>
           </div>
 
@@ -508,7 +520,7 @@ export default function Discovery() {
                   onClick={() => setSelectedPlaceId(place.id === selectedPlaceId ? null : place.id)}
                   style={{ cursor: 'pointer' }}
                 >
-                  <PlaceCard place={place} gatherings={gatherings} highlighted={place.id === selectedPlaceId} userLocation={userLocation} />
+                  <PlaceCard place={place} gatherings={gatherings} highlighted={place.id === selectedPlaceId} userLocation={userLocation} locationLoading={locationLoading} />
                 </div>
               ))}
             </div>
@@ -545,16 +557,26 @@ export default function Discovery() {
                   <div className="mb-3">
                     <label className="form-label fw-semibold">Preferred place types</label>
                     <div className="d-flex gap-2 flex-wrap">
-                      {PLACE_TYPES.map(type => (
-                        <button
-                          key={type}
-                          type="button"
-                          className={`btn btn-sm text-capitalize ${prefs.preferred_types.includes(type) ? 'btn-dark' : 'btn-outline-secondary'}`}
-                          onClick={() => toggleType(type)}
-                        >
-                          {type}
-                        </button>
-                      ))}
+                      {options.place_types.map(({ value, label, color }) => {
+                        const active = prefs.preferred_types.includes(value);
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            className="btn btn-sm"
+                            style={{
+                              backgroundColor: active ? color : 'transparent',
+                              borderColor: color,
+                              color: active ? '#fff' : color,
+                              borderWidth: 1,
+                              borderStyle: 'solid',
+                            }}
+                            onClick={() => toggleType(value)}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 

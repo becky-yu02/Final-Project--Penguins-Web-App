@@ -8,6 +8,7 @@ export default function Navbar() {
   const { token, logout } = useAuth();
   const [isOnline, setIsOnline] = useState(false);
   const [broadcasting, setBroadcasting] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -20,6 +21,7 @@ export default function Navbar() {
         if (!user) return;
         setIsOnline(user.online_status?.is_online ?? false);
         setBroadcasting(user.online_status?.broadcasting ?? false);
+        setIsAdmin(user.role === 'admin');
       })
       .catch(() => { });
   }, [token]);
@@ -56,6 +58,13 @@ export default function Navbar() {
               Gatherings
             </NavLink>
           </li>
+          {isAdmin && (
+            <li className="nav-item">
+              <NavLink className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')} to="/admin">
+                Admin
+              </NavLink>
+            </li>
+          )}
         </ul>
         <ul className="navbar-nav align-items-center gap-3">
           <li className="nav-item d-flex align-items-center gap-2">

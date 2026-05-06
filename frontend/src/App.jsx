@@ -8,6 +8,7 @@ import Gatherings from './pages/gatherings';
 import Discovery from './pages/discovery';
 import Profile from './pages/profile';
 import Settings from './pages/settings';
+import Admin from './pages/admin';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
           <Route path="/gatherings" element={<ProtectedRoute><Gatherings /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
         </Routes>
       </UserProvider>
     </AuthProvider>
