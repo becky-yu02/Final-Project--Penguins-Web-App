@@ -7,6 +7,21 @@ import options from '../utils/options.json';
 
 const API = 'http://127.0.0.1:8000';
 
+function loadMaps() {
+    if (window.google?.maps) return Promise.resolve();
+    return new Promise(resolve => {
+        const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+        window.__gmapsReady = resolve;
+        if (!document.getElementById('gmap-script')) {
+            const s = document.createElement('script');
+            s.id = 'gmap-script';
+            s.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=__gmapsReady`;
+            s.async = true;
+            document.head.appendChild(s);
+        }
+    });
+}
+
 function Badge({ children, variant = 'secondary' }) {
     return <span className={`badge bg-${variant}`}>{children}</span>;
 }
@@ -233,6 +248,50 @@ function NoteRow({ note, onDelete }) {
 }
 
 function PlaceExpandedRow({ place, token, onUpdate }) {
+    const [geocoding, setGeocoding] = useState(false);
+    const [geoStatus, setGeoStatus] = useState('');
+    const [geoMsg, setGeoMsg] = useState('');
+
+    async function handleRecalculate() {
+        if (!place.address) {
+            setGeoStatus('error');
+            setGeoMsg('No address set for this place.');
+            return;
+        }
+        setGeocoding(true);
+        setGeoStatus('');
+        setGeoMsg('');
+        await loadMaps();
+        new window.google.maps.Geocoder().geocode({ address: place.address }, async (results, status) => {
+            if (status !== 'OK' || !results?.[0]) {
+                setGeoStatus('error');
+                setGeoMsg(status === 'ZERO_RESULTS' ? 'Address not found.' : `Geocoding failed: ${status}`);
+                setGeocoding(false);
+                return;
+            }
+            const loc = results[0].geometry.location;
+            const lat = loc.lat();
+            const lng = loc.lng();
+            try {
+                const res = await fetch(`${API}/penguins/places/${place.id}`, {
+                    method: 'PUT',
+                    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ coordinates: { lat, lng } }),
+                });
+                if (!res.ok) throw new Error('Failed to save coordinates');
+                const updated = await res.json();
+                onUpdate({ ...place, ...updated, id: updated.id ?? updated._id?.$oid ?? updated._id });
+                setGeoStatus('success');
+                setGeoMsg(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+            } catch (err) {
+                setGeoStatus('error');
+                setGeoMsg(err.message || 'Failed to save');
+            } finally {
+                setGeocoding(false);
+            }
+        });
+    }
+
     async function deleteNote(noteId) {
         const res = await fetch(`${API}/penguins/places/${place.id}/notes/${noteId}`, {
             method: 'DELETE',
@@ -261,10 +320,26 @@ function PlaceExpandedRow({ place, token, onUpdate }) {
                         </div>
                         <div className="col-auto">
                             <span className="text-muted small fw-semibold">Coordinates</span>
-                            <div className="small">
-                                {place.coordinates
-                                    ? `${place.coordinates.lat}, ${place.coordinates.lng}`
-                                    : '—'}
+                            <div className="d-flex align-items-center gap-2 mt-1">
+                                <span className="small">
+                                    {place.coordinates
+                                        ? `${place.coordinates.lat}, ${place.coordinates.lng}`
+                                        : '—'}
+                                </span>
+                                <button
+                                    className="btn btn-outline-secondary"
+                                    style={{ fontSize: '0.72rem', padding: '1px 8px' }}
+                                    onClick={handleRecalculate}
+                                    disabled={geocoding}
+                                >
+                                    {geocoding ? '…' : '↺ Recalculate'}
+                                </button>
+                                {geoStatus === 'success' && (
+                                    <span className="small text-success">Updated → {geoMsg}</span>
+                                )}
+                                {geoStatus === 'error' && (
+                                    <span className="small text-danger">{geoMsg}</span>
+                                )}
                             </div>
                         </div>
                         <div className="col-auto">
@@ -710,8 +785,169 @@ function GatheringsTab({ token }) {
     );
 }
 
+function UserExpandedRow({ user, token, onUpdate }) {
+    const [form, setForm] = useState({
+        username: user.username ?? '',
+        first_name: user.first_name ?? '',
+        last_name: user.last_name ?? '',
+        profile_image_url: user.profile_image_url ?? '',
+    });
+    const [saving, setSaving] = useState(false);
+    const [deletingPic, setDeletingPic] = useState(false);
+    const [saveStatus, setSaveStatus] = useState('');
+    const [errorMsg, setErrorMsg] = useState('');
+
+    function formatDt(iso) {
+        if (!iso) return '—';
+        return new Date(iso).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+    }
+
+    async function handleSave() {
+        setSaving(true);
+        setSaveStatus('');
+        const body = {};
+        if (form.username !== user.username) body.username = form.username;
+        if (form.first_name !== user.first_name) body.first_name = form.first_name;
+        if (form.last_name !== user.last_name) body.last_name = form.last_name;
+        const newPic = form.profile_image_url.trim() || null;
+        if (newPic !== (user.profile_image_url ?? null)) body.profile_image_url = newPic;
+        if (Object.keys(body).length === 0) { setSaving(false); return; }
+        const res = await fetch(`${API}/penguins/users/${user.id}`, {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        setSaving(false);
+        if (res.ok) {
+            const updated = await res.json();
+            onUpdate({ ...user, ...updated });
+            setSaveStatus('saved');
+            setTimeout(() => setSaveStatus(''), 3000);
+        } else {
+            const data = await res.json().catch(() => ({}));
+            setErrorMsg(data.detail ?? 'Failed to save.');
+            setSaveStatus('error');
+            setTimeout(() => setSaveStatus(''), 4000);
+        }
+    }
+
+    async function handleDeletePic() {
+        setDeletingPic(true);
+        const res = await fetch(`${API}/penguins/users/${user.id}`, {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ profile_image_url: null }),
+        });
+        setDeletingPic(false);
+        if (res.ok) {
+            setForm(f => ({ ...f, profile_image_url: '' }));
+            onUpdate({ ...user, profile_image_url: null });
+        }
+    }
+
+    return (
+        <tr>
+            <td colSpan={6} className="p-0">
+                <div className="px-4 py-3" style={{ backgroundColor: '#f8f9fa' }}>
+                    <div className="row g-3 mb-3">
+                        <div className="col-auto">
+                            <span className="text-muted small fw-semibold">ID</span>
+                            <div className="small text-break">{user.id}</div>
+                        </div>
+                        <div className="col-auto">
+                            <span className="text-muted small fw-semibold">Email</span>
+                            <div className="small">{user.email ?? '—'}</div>
+                        </div>
+                        <div className="col-auto">
+                            <span className="text-muted small fw-semibold">Friends</span>
+                            <div className="small">{user.friend_ids?.length ?? 0}</div>
+                        </div>
+                        <div className="col-auto">
+                            <span className="text-muted small fw-semibold">Online</span>
+                            <div className="small">{user.online_status?.is_online ? <Badge variant="success">Yes</Badge> : <Badge variant="secondary">No</Badge>}</div>
+                        </div>
+                        <div className="col-auto">
+                            <span className="text-muted small fw-semibold">Broadcasting</span>
+                            <div className="small">{user.online_status?.broadcasting ? <Badge variant="success">Yes</Badge> : <Badge variant="secondary">No</Badge>}</div>
+                        </div>
+                        <div className="col-auto">
+                            <span className="text-muted small fw-semibold">Created</span>
+                            <div className="small">{formatDt(user.created_at)}</div>
+                        </div>
+                    </div>
+
+                    <div className="row g-2 mb-3" style={{ maxWidth: 600 }}>
+                        <div className="col-12 col-sm-4">
+                            <label className="form-label small fw-semibold mb-1">Username</label>
+                            <input
+                                className="form-control form-control-sm"
+                                value={form.username}
+                                onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
+                            />
+                        </div>
+                        <div className="col-12 col-sm-4">
+                            <label className="form-label small fw-semibold mb-1">First Name</label>
+                            <input
+                                className="form-control form-control-sm"
+                                value={form.first_name}
+                                onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))}
+                            />
+                        </div>
+                        <div className="col-12 col-sm-4">
+                            <label className="form-label small fw-semibold mb-1">Last Name</label>
+                            <input
+                                className="form-control form-control-sm"
+                                value={form.last_name}
+                                onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))}
+                            />
+                        </div>
+                        <div className="col-12">
+                            <label className="form-label small fw-semibold mb-1">Profile Picture URL</label>
+                            <div className="d-flex align-items-center gap-2">
+                                {form.profile_image_url && (
+                                    <img
+                                        src={form.profile_image_url}
+                                        alt="preview"
+                                        style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: '50%', flexShrink: 0 }}
+                                        onError={e => { e.target.style.display = 'none'; }}
+                                    />
+                                )}
+                                <input
+                                    type="url"
+                                    className="form-control form-control-sm"
+                                    placeholder="https://…"
+                                    value={form.profile_image_url}
+                                    onChange={e => setForm(f => ({ ...f, profile_image_url: e.target.value }))}
+                                />
+                                {form.profile_image_url && (
+                                    <button
+                                        className="btn btn-sm btn-outline-danger flex-shrink-0"
+                                        onClick={handleDeletePic}
+                                        disabled={deletingPic}
+                                    >
+                                        {deletingPic ? '…' : 'Delete'}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="d-flex align-items-center gap-2">
+                        <button className="btn btn-sm btn-dark" onClick={handleSave} disabled={saving}>
+                            {saving ? 'Saving…' : 'Save Changes'}
+                        </button>
+                        {saveStatus === 'saved' && <span className="small text-success">Saved!</span>}
+                        {saveStatus === 'error' && <span className="small text-danger">{errorMsg}</span>}
+                    </div>
+                </div>
+            </td>
+        </tr>
+    );
+}
+
 function UsersTab({ token, currentUserId }) {
     const [users, setUsers] = useState([]);
+    const [expandedId, setExpandedId] = useState(null);
 
     useEffect(() => {
         fetch(`${API}/penguins/users`, { headers: { Authorization: `Bearer ${token}` } })
@@ -720,7 +956,12 @@ function UsersTab({ token, currentUserId }) {
             .catch(() => { });
     }, [token]);
 
-    async function toggleRole(user) {
+    function updateUser(updated) {
+        setUsers(prev => prev.map(u => u.id === updated.id ? { ...u, ...updated } : u));
+    }
+
+    async function toggleRole(e, user) {
+        e.stopPropagation();
         const newRole = user.role === 'admin' ? 'basic' : 'admin';
         const res = await fetch(`${API}/penguins/users/${user.id}/access`, {
             method: 'PUT',
@@ -732,13 +973,15 @@ function UsersTab({ token, currentUserId }) {
         }
     }
 
-    async function deleteUser(user) {
+    async function deleteUser(e, user) {
+        e.stopPropagation();
         const res = await fetch(`${API}/penguins/users/${user.id}`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
             setUsers(prev => prev.filter(u => u.id !== user.id));
+            if (expandedId === user.id) setExpandedId(null);
         }
     }
 
@@ -747,6 +990,7 @@ function UsersTab({ token, currentUserId }) {
             <table className="table table-hover align-middle">
                 <thead className="table-light">
                     <tr>
+                        <th></th>
                         <th>Username</th>
                         <th>Name</th>
                         <th>Email</th>
@@ -755,38 +999,58 @@ function UsersTab({ token, currentUserId }) {
                     </tr>
                 </thead>
                 <tbody>
-                    {users.map(user => (
-                        <tr key={user.id}>
-                            <td className="fw-semibold">{user.username}</td>
-                            <td>{user.first_name} {user.last_name}</td>
-                            <td className="text-muted small">{user.email}</td>
-                            <td className="text-center">
-                                <Badge variant={user.role === 'admin' ? 'dark' : 'secondary'}>{user.role}</Badge>
-                            </td>
-                            <td className="text-center">
-                                <div className="d-flex gap-2 justify-content-center">
-                                    <button
-                                        className={`btn btn-sm ${user.role === 'admin' ? 'btn-outline-secondary' : 'btn-outline-dark'}`}
-                                        disabled={user.id === currentUserId}
-                                        title={user.id === currentUserId ? "Can't change your own role" : undefined}
-                                        onClick={() => toggleRole(user)}
-                                    >
-                                        {user.role === 'admin' ? 'Revoke Admin' : 'Make Admin'}
-                                    </button>
-                                    <button
-                                        className="btn btn-sm btn-outline-danger"
-                                        disabled={user.id === currentUserId}
-                                        title={user.id === currentUserId ? "Can't delete your own account" : undefined}
-                                        onClick={() => deleteUser(user)}
-                                    >
-                                        Delete
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    ))}
+                    {users.map(user => {
+                        const expanded = expandedId === user.id;
+                        return (
+                            <React.Fragment key={user.id}>
+                                <tr
+                                    onClick={() => setExpandedId(expanded ? null : user.id)}
+                                    style={{ cursor: 'pointer' }}
+                                    className={expanded ? 'table-active' : ''}
+                                >
+                                    <td className="text-muted small" style={{ width: '24px' }}>
+                                        {expanded ? '▾' : '▸'}
+                                    </td>
+                                    <td className="fw-semibold">{user.username}</td>
+                                    <td>{user.first_name} {user.last_name}</td>
+                                    <td className="text-muted small">{user.email}</td>
+                                    <td className="text-center">
+                                        <Badge variant={user.role === 'admin' ? 'dark' : 'secondary'}>{user.role}</Badge>
+                                    </td>
+                                    <td className="text-center" onClick={e => e.stopPropagation()}>
+                                        <div className="d-flex gap-2 justify-content-center">
+                                            <button
+                                                className={`btn btn-sm ${user.role === 'admin' ? 'btn-outline-secondary' : 'btn-outline-dark'}`}
+                                                disabled={user.id === currentUserId}
+                                                title={user.id === currentUserId ? "Can't change your own role" : undefined}
+                                                onClick={e => toggleRole(e, user)}
+                                            >
+                                                {user.role === 'admin' ? 'Revoke Admin' : 'Make Admin'}
+                                            </button>
+                                            <button
+                                                className="btn btn-sm btn-outline-danger"
+                                                disabled={user.id === currentUserId}
+                                                title={user.id === currentUserId ? "Can't delete your own account" : undefined}
+                                                onClick={e => deleteUser(e, user)}
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {expanded && (
+                                    <UserExpandedRow
+                                        key={`${user.id}-expanded`}
+                                        user={user}
+                                        token={token}
+                                        onUpdate={updateUser}
+                                    />
+                                )}
+                            </React.Fragment>
+                        );
+                    })}
                     {users.length === 0 && (
-                        <tr><td colSpan={5} className="text-center text-muted py-4">No users found.</td></tr>
+                        <tr><td colSpan={6} className="text-center text-muted py-4">No users found.</td></tr>
                     )}
                 </tbody>
             </table>

@@ -61,6 +61,9 @@ def apply_user_updates(user: User, payload: UserUpdateRequest) -> list[str]:
     updated_fields: list[str] = []
     update_data = payload.model_dump(exclude_unset=True)
 
+    if "username" in update_data:
+        user.username = payload.username
+        updated_fields.append("username")
     if "first_name" in update_data:
         user.first_name = payload.first_name
         updated_fields.append("first_name")
@@ -239,6 +242,11 @@ async def update_user(
             current_user.id,
         )
         raise HTTPException(status_code=403, detail="Not authorized.")
+
+    if payload.username is not None and payload.username != user.username:
+        existing = await User.find_one(User.username == payload.username)
+        if existing:
+            raise HTTPException(status_code=409, detail="Username already taken.")
 
     updated_fields = apply_user_updates(user, payload)
     user.updated_at = datetime.now(UTC)

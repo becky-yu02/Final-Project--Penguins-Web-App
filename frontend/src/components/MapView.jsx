@@ -1,75 +1,152 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import options from '../utils/options.json';
+
+import cafeIconUrl from '../assets/cafe.svg';
+import libraryIconUrl from '../assets/library.svg';
+import publicIconUrl from '../assets/public.svg';
+import universityIconUrl from '../assets/university.svg';
+import barIconUrl from '../assets/bar.svg';
+import restaurantIconUrl from '../assets/restaurant.svg';
+import parkIconUrl from '../assets/park.svg';
+import otherIconUrl from '../assets/other.svg';
+import starIconUrl from '../assets/star.svg';
+import groupIconUrl from '../assets/group.svg';
+import friendIconUrl from '../assets/friend.svg';
 
 const IOWA_CITY = { lat: 41.6611, lng: -91.5355 };
 
-async function createAvatarIcon(imageUrl, initials, size = 42) {
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d');
+const typeIconUrls = {
+  cafe: cafeIconUrl,
+  library: libraryIconUrl,
+  public: publicIconUrl,
+  university: universityIconUrl,
+  bar: barIconUrl,
+  restaurant: restaurantIconUrl,
+  park: parkIconUrl,
+  other: otherIconUrl,
+};
 
-  // Clip everything to a circle
-  ctx.beginPath();
-  ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
-  ctx.clip();
+const TYPE_ICONS = Object.fromEntries(
+  options.place_types.map(pt => [pt.value, { url: typeIconUrls[pt.value] ?? otherIconUrl, color: pt.color }])
+);
 
-  let drewImage = false;
+// Fetch SVG text once, cache by URL, then recolor by replacing currentColor on demand
+const svgTextCache = new Map();
+
+async function preloadSvgTexts(urls) {
+  await Promise.all(
+    urls.filter(u => !svgTextCache.has(u)).map(async u => {
+      try {
+        const text = await fetch(u).then(r => r.text());
+        svgTextCache.set(u, text);
+      } catch { /* ignore */ }
+    })
+  );
+}
+
+function svgImg(url, color, size) {
+  const text = svgTextCache.get(url);
+  if (!text) return `<span style="display:inline-block;width:${size}px;height:${size}px;flex-shrink:0;"></span>`;
+  const colored = text.replace(/currentColor/gi, color);
+  const dataUri = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(colored)}`;
+  return `<img src="${dataUri}" width="${size}" height="${size}" style="flex-shrink:0;" />`;
+}
+
+function avatarHTML(imageUrl, initials) {
   if (imageUrl) {
-    try {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = imageUrl; });
-      ctx.drawImage(img, 0, 0, size, size);
-      canvas.toDataURL(); // throws if canvas is CORS-tainted
-      drewImage = true;
-    } catch {
-      ctx.clearRect(0, 0, size, size);
+    return `<img class="avatar-img" src="${imageUrl}" alt="${initials}" data-initials="${initials}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;border:1.5px solid rgba(255,255,255,0.8);flex-shrink:0;" />`;
+  }
+  return `<span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#5c6bc0;color:white;font-size:9px;font-weight:700;flex-shrink:0;border:1.5px solid rgba(255,255,255,0.8);">${initials}</span>`;
+}
+
+function buildMarkerHTML({ isFavorite, typeIcon, gatheringVisibility, friendAvatars, isSelected }) {
+  const bg = isSelected ? '#1a73e8' : '#ffffff';
+  const triColor = isSelected ? '#1a73e8' : '#ffffff';
+  const tIcon = typeIcon ?? TYPE_ICONS.other;
+  const iconFg = isSelected ? '#ffffff' : null;
+
+  const parts = [];
+
+  if (isFavorite) {
+    parts.push(svgImg(starIconUrl, '#ffd700', 16));
+  }
+
+  parts.push(svgImg(tIcon.url, iconFg ?? tIcon.color, 18));
+
+  if (gatheringVisibility === 'public') {
+    parts.push(svgImg(groupIconUrl, iconFg ?? '#555555', 16));
+  } else if (gatheringVisibility === 'friends' || gatheringVisibility === 'private') {
+    parts.push(svgImg(friendIconUrl, iconFg ?? '#555555', 16));
+  }
+
+  const shown = (friendAvatars ?? []).slice(0, 2);
+  const extra = (friendAvatars ?? []).length - shown.length;
+  shown.forEach(f => parts.push(avatarHTML(f.imageUrl, f.initials)));
+  if (extra > 0) {
+    parts.push(`<span style="font-size:10px;font-weight:700;color:${isSelected ? '#fff' : '#444'};line-height:1;flex-shrink:0;">+${extra}</span>`);
+  }
+
+  return `<div style="display:flex;flex-direction:column;align-items:center;pointer-events:none;"><div style="background:${bg};border-radius:8px;padding:5px 8px;display:flex;align-items:center;gap:4px;white-space:nowrap;">${parts.join('')}</div><div style="width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:8px solid ${triColor};margin-top:-1px;flex-shrink:0;"></div></div>`;
+}
+
+let CustomMarkerClass = null;
+
+function ensureCustomMarkerClass() {
+  if (CustomMarkerClass) return;
+  class CustomMarker extends window.google.maps.OverlayView {
+    constructor(latLng, opts) {
+      super();
+      this.latLng = latLng;
+      this.opts = opts;
+      this.div = null;
+    }
+
+    onAdd() {
+      const el = document.createElement('div');
+      el.style.cssText = 'position:absolute;cursor:pointer;filter:drop-shadow(0 2px 5px rgba(0,0,0,0.28));';
+      this.div = el;
+      this._syncDOM();
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        this.opts.onClick?.();
+      });
+      this.getPanes().overlayMouseTarget.appendChild(el);
+    }
+
+    _syncDOM() {
+      if (!this.div) return;
+      this.div.innerHTML = buildMarkerHTML(this.opts);
+      this.div.style.zIndex = this.opts.isSelected ? '100' : '10';
+      this.div.querySelectorAll('img.avatar-img').forEach(img => {
+        img.addEventListener('error', () => {
+          const span = document.createElement('span');
+          span.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#5c6bc0;color:white;font-size:9px;font-weight:700;flex-shrink:0;border:1.5px solid rgba(255,255,255,0.8);';
+          span.textContent = img.dataset.initials || '?';
+          img.parentNode?.replaceChild(span, img);
+        }, { once: true });
+      });
+    }
+
+    draw() {
+      if (!this.div) return;
+      const pt = this.getProjection()?.fromLatLngToDivPixel(this.latLng);
+      if (!pt) return;
+      this.div.style.left = pt.x + 'px';
+      this.div.style.top = pt.y + 'px';
+      this.div.style.transform = 'translate(-50%, -100%)';
+    }
+
+    onRemove() {
+      this.div?.parentNode?.removeChild(this.div);
+      this.div = null;
+    }
+
+    update(opts) {
+      this.opts = opts;
+      this._syncDOM();
     }
   }
-
-  if (!drewImage) {
-    ctx.fillStyle = '#5c6bc0';
-    ctx.fillRect(0, 0, size, size);
-    ctx.fillStyle = 'white';
-    ctx.font = `bold ${Math.round(size * 0.36)}px Arial,sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(initials, size / 2, size / 2);
-  }
-
-  // White border ring
-  ctx.strokeStyle = 'white';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.arc(size / 2, size / 2, size / 2 - 1.5, 0, Math.PI * 2);
-  ctx.stroke();
-
-  return {
-    url: canvas.toDataURL(),
-    scaledSize: new window.google.maps.Size(size, size),
-    anchor: new window.google.maps.Point(size / 2, size / 2),
-  };
-}
-
-// Google Maps dot icons are 32×32px source images.
-// Default pin is 25% smaller (24px), selected is 25% larger (40px).
-const SIZE_DEFAULT = 24;
-const SIZE_SELECTED = 40;
-
-function iconDefault() {
-  return {
-    url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png',
-    scaledSize: new window.google.maps.Size(SIZE_DEFAULT, SIZE_DEFAULT),
-    anchor: new window.google.maps.Point(SIZE_DEFAULT / 2, SIZE_DEFAULT / 2),
-  };
-}
-
-function iconSelected() {
-  return {
-    url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
-    scaledSize: new window.google.maps.Size(SIZE_SELECTED, SIZE_SELECTED),
-    anchor: new window.google.maps.Point(SIZE_SELECTED / 2, SIZE_SELECTED / 2),
-  };
+  CustomMarkerClass = CustomMarker;
 }
 
 function loadScript(apiKey) {
@@ -81,47 +158,62 @@ function loadScript(apiKey) {
   document.head.appendChild(s);
 }
 
-function placeMarkers(map, places, onMarkerClick, markersRef, selectedPlaceId) {
-  // Remove existing markers
-  Object.values(markersRef.current).forEach(m => m.setMap(null));
-  markersRef.current = {};
-
-  places.forEach(p => {
-    if (!p.coordinates) return;
-    const marker = new window.google.maps.Marker({
-      map,
-      position: { lat: p.coordinates.lat, lng: p.coordinates.lng },
-      title: p.name,
-      icon: p.id === selectedPlaceId ? iconSelected() : iconDefault(),
-    });
-    marker.addListener('click', () => onMarkerClick?.(p.id));
-    markersRef.current[p.id] = marker;
-  });
+function getInitials(first, last) {
+  return ((first?.[0] ?? '') + (last?.[0] ?? '')).toUpperCase() || '?';
 }
 
-export default function MapView({ places = [], onMarkerClick, selectedPlaceId, friendMarkers = [] }) {
+function getFriendsAtPlace(placeId, friendsData, gatherings) {
+  return friendsData
+    .filter(f => {
+      if (!f.online_status?.broadcasting || !f.online_status?.current_gathering_id) return false;
+      const g = gatherings.find(g => (g._id ?? g.id) === f.online_status.current_gathering_id);
+      return g?.place_id === placeId;
+    })
+    .map(f => ({
+      imageUrl: f.profile_image_url ?? null,
+      initials: getInitials(f.first_name, f.last_name),
+    }));
+}
+
+function getGatheringAtPlace(placeId, gatherings) {
+  return (
+    gatherings.find(g => g.place_id === placeId && g.status === 'active') ??
+    gatherings.find(g => g.place_id === placeId && g.status === 'scheduled') ??
+    null
+  );
+}
+
+export default function MapView({
+  places = [],
+  onMarkerClick,
+  selectedPlaceId,
+  currentUser = null,
+  gatherings = [],
+  friendsData = [],
+  markerMode = 'gatherings',
+}) {
   const divRef = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef({});
-  const friendMarkersRef = useRef({});
-  // Keep a stable ref to the latest callback so marker listeners stay fresh
   const onMarkerClickRef = useRef(onMarkerClick);
+  const [mapReady, setMapReady] = useState(false);
+
   useEffect(() => { onMarkerClickRef.current = onMarkerClick; }, [onMarkerClick]);
 
-  const placesRef = useRef(places);
-  useEffect(() => { placesRef.current = places; }, [places]);
-
-  // Initialize map once, then place initial markers
   useEffect(() => {
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    const allSvgUrls = [...Object.values(typeIconUrls), starIconUrl, groupIconUrl, friendIconUrl];
 
     function initMap() {
       if (!divRef.current || mapRef.current) return;
       mapRef.current = new window.google.maps.Map(divRef.current, {
         center: IOWA_CITY,
         zoom: 15,
+        styles: [
+          { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+        ],
       });
-      placeMarkers(mapRef.current, placesRef.current, id => onMarkerClickRef.current?.(id), markersRef, null);
+      preloadSvgTexts(allSvgUrls).then(() => setMapReady(true));
     }
 
     if (window.google?.maps) {
@@ -132,48 +224,55 @@ export default function MapView({ places = [], onMarkerClick, selectedPlaceId, f
     }
   }, []);
 
-  // Re-render markers whenever places list changes
   useEffect(() => {
-    if (!mapRef.current) return;
-    placeMarkers(mapRef.current, places, id => onMarkerClickRef.current?.(id), markersRef, selectedPlaceId);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [places]);
+    if (!mapReady || !mapRef.current) return;
+    ensureCustomMarkerClass();
 
-  // Update marker icons and pan/zoom when selection changes
-  useEffect(() => {
-    Object.entries(markersRef.current).forEach(([placeId, marker]) => {
-      marker.setIcon(placeId === selectedPlaceId ? iconSelected() : iconDefault());
+    const activeIds = new Set(places.map(p => p.id).filter(Boolean));
+
+    Object.keys(markersRef.current).forEach(id => {
+      if (!activeIds.has(id)) {
+        markersRef.current[id].setMap(null);
+        delete markersRef.current[id];
+      }
     });
+
+    places.forEach(p => {
+      if (!p.coordinates) return;
+
+      const isFavorite = markerMode === 'places' && (currentUser?.favorite_places ?? []).includes(p.id);
+      const typeIcon = TYPE_ICONS[p.type_of_place] ?? TYPE_ICONS.other;
+      const gathering = markerMode === 'gatherings' ? getGatheringAtPlace(p.id, gatherings) : null;
+      const gatheringVisibility = gathering?.visibility ?? null;
+      const friendAvatars = getFriendsAtPlace(p.id, friendsData, gatherings);
+      const isSelected = p.id === selectedPlaceId;
+
+      const opts = {
+        isFavorite,
+        typeIcon,
+        gatheringVisibility,
+        friendAvatars,
+        isSelected,
+        onClick: () => onMarkerClickRef.current?.(p.id),
+      };
+
+      if (markersRef.current[p.id]) {
+        markersRef.current[p.id].update(opts);
+      } else {
+        const latLng = new window.google.maps.LatLng(p.coordinates.lat, p.coordinates.lng);
+        const marker = new CustomMarkerClass(latLng, opts);
+        marker.setMap(mapRef.current);
+        markersRef.current[p.id] = marker;
+      }
+    });
+  }, [mapReady, places, selectedPlaceId, currentUser, gatherings, friendsData, markerMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
     if (selectedPlaceId && markersRef.current[selectedPlaceId]) {
-      const pos = markersRef.current[selectedPlaceId].getPosition();
-      mapRef.current.panTo(pos);
-      mapRef.current.setZoom(17);
+      mapRef.current?.panTo(markersRef.current[selectedPlaceId].latLng);
+      mapRef.current?.setZoom(17);
     }
   }, [selectedPlaceId]);
-
-  // Render circular avatar markers for broadcasting friends
-  useEffect(() => {
-    if (!mapRef.current) return;
-    Object.values(friendMarkersRef.current).forEach(m => m.setMap(null));
-    friendMarkersRef.current = {};
-
-    let cancelled = false;
-    friendMarkers.forEach(async (f) => {
-      const initials = f.name.split(' ').map(n => n[0] ?? '').join('').toUpperCase().slice(0, 2);
-      const icon = await createAvatarIcon(f.imageUrl, initials);
-      if (cancelled || !mapRef.current) return;
-      const marker = new window.google.maps.Marker({
-        map: mapRef.current,
-        position: f.position,
-        title: `${f.name} (@${f.username}) · Broadcasting`,
-        icon,
-        zIndex: 10,
-      });
-      friendMarkersRef.current[f.userId] = marker;
-    });
-
-    return () => { cancelled = true; };
-  }, [friendMarkers]); // eslint-disable-next-line react-hooks/exhaustive-deps
 
   return <div ref={divRef} style={{ height: '100%', width: '100%' }} />;
 }

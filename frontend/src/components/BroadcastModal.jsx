@@ -1,21 +1,102 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useUser } from '../context/UserContext';
 import SuggestPlaceModal from './SuggestPlaceModal';
+import StarIcon from '../assets/star.svg?react';
 
 const API = 'http://127.0.0.1:8000';
 
-const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
-  const h = Math.floor(i / 2);
-  const m = i % 2 === 0 ? '00' : '30';
-  const period = h < 12 ? 'AM' : 'PM';
-  const display = `${h === 0 ? 12 : h > 12 ? h - 12 : h}:${m} ${period}`;
-  const value = `${String(h).padStart(2, '0')}:${m}`;
-  return { value, display };
-});
+const HOURS_12 = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+const MINUTES_15 = ['00', '15', '30', '45'];
+
+function TimePicker({ value, onChange }) {
+  const [hStr, mStr] = value.split(':');
+  const h24 = parseInt(hStr, 10);
+  const period = h24 < 12 ? 'AM' : 'PM';
+  const hour12 = h24 % 12 || 12;
+  const minute = mStr;
+
+  function update(newHour12, newMinute, newPeriod) {
+    const h = newPeriod === 'AM'
+      ? (newHour12 === 12 ? 0 : newHour12)
+      : (newHour12 === 12 ? 12 : newHour12 + 12);
+    onChange(`${String(h).padStart(2, '0')}:${newMinute}`);
+  }
+
+  return (
+    <div className="d-flex gap-1">
+      <select className="form-select px-2" style={{ width: '68px' }} value={hour12} onChange={e => update(Number(e.target.value), minute, period)}>
+        {HOURS_12.map(h => <option key={h} value={h}>{h}</option>)}
+      </select>
+      <select className="form-select px-2" style={{ width: '68px' }} value={minute} onChange={e => update(hour12, e.target.value, period)}>
+        {MINUTES_15.map(m => <option key={m} value={m}>{m}</option>)}
+      </select>
+      <select className="form-select px-2" style={{ width: '72px' }} value={period} onChange={e => update(hour12, minute, e.target.value)}>
+        <option value="AM">AM</option>
+        <option value="PM">PM</option>
+      </select>
+    </div>
+  );
+}
 
 function toISO(date, time) {
   if (!date) return null;
   return new Date(`${date}T${time || '00:00'}`).toISOString();
+}
+
+function PlaceSearch({ places, value, onChange }) {
+  const user = useUser();
+  const favorites = user?.favorite_places ?? [];
+  const [query, setQuery] = useState(() => places.find(p => p.id === value)?.name ?? '');
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const match = places.find(p => p.id === value);
+    setQuery(match?.name ?? '');
+  }, [value, places]);
+
+  const filtered = query
+    ? places.filter(p =>
+        p.name.toLowerCase().includes(query.toLowerCase()) ||
+        (p.address ?? '').toLowerCase().includes(query.toLowerCase())
+      )
+    : [...places].sort((a, b) => {
+        const aFav = favorites.includes(a.id) ? 0 : 1;
+        const bFav = favorites.includes(b.id) ? 0 : 1;
+        return aFav - bFav;
+      });
+
+  return (
+    <div className="position-relative flex-grow-1">
+      <input
+        type="text"
+        className="form-control"
+        placeholder="Search places…"
+        value={query}
+        onChange={e => { setQuery(e.target.value); onChange(''); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+      />
+      {open && filtered.length > 0 && (
+        <ul className="list-group position-absolute w-100 shadow-sm" style={{ zIndex: 1000, maxHeight: '220px', overflowY: 'auto', top: '100%' }}>
+          {filtered.slice(0, 10).map(p => (
+            <li
+              key={p.id}
+              className={`list-group-item list-group-item-action py-2 ${value === p.id ? 'active' : ''}`}
+              style={{ cursor: 'pointer' }}
+              onMouseDown={() => { onChange(p.id); setOpen(false); }}
+            >
+              <div className="small fw-semibold d-flex align-items-center gap-1">
+                {favorites.includes(p.id) && <StarIcon width={12} height={12} style={{ color: '#ffd700', flexShrink: 0 }} />}
+                {p.name}
+              </div>
+              {p.address && <div className="text-muted" style={{ fontSize: '0.75rem' }}>{p.address}</div>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 export default function BroadcastModal({ onConfirm, onClose }) {
@@ -34,7 +115,7 @@ export default function BroadcastModal({ onConfirm, onClose }) {
   const [form, setForm] = useState(() => {
     const now = new Date();
     const totalMins = now.getHours() * 60 + now.getMinutes();
-    const rounded = Math.round(totalMins / 30) * 30;
+    const rounded = Math.round(totalMins / 15) * 15;
     const h = Math.floor(rounded / 60) % 24;
     const m = rounded % 60;
     return {
@@ -199,16 +280,11 @@ export default function BroadcastModal({ onConfirm, onClose }) {
                   <div className="mb-3">
                     <label className="form-label">Place <span className="text-danger">*</span></label>
                     <div className="d-flex gap-2">
-                      <select
-                        className="form-select"
+                      <PlaceSearch
+                        places={places}
                         value={form.place_id}
-                        onChange={e => { setField('place_id', e.target.value); setNoPlaceFound(false); }}
-                      >
-                        <option value="">Select a place…</option>
-                        {places.map(p => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                      </select>
+                        onChange={v => { setField('place_id', v); setNoPlaceFound(false); }}
+                      />
                       <button
                         type="button"
                         className="btn btn-outline-secondary btn-sm flex-shrink-0"
@@ -236,23 +312,15 @@ export default function BroadcastModal({ onConfirm, onClose }) {
                     <label className="form-label">
                       End <span className="text-muted fw-normal">(optional)</span>
                     </label>
-                    <div className="d-flex gap-2">
+                    <div className="d-flex gap-2 flex-wrap">
                       <input
                         type="date"
                         className="form-control"
+                        style={{ minWidth: '150px', flex: '1' }}
                         value={form.end_date}
                         onChange={e => setField('end_date', e.target.value)}
                       />
-                      <select
-                        className="form-select"
-                        style={{ maxWidth: 140 }}
-                        value={form.end_time}
-                        onChange={e => setField('end_time', e.target.value)}
-                      >
-                        {TIME_OPTIONS.map(o => (
-                          <option key={o.value} value={o.value}>{o.display}</option>
-                        ))}
-                      </select>
+                      <TimePicker value={form.end_time} onChange={v => setField('end_time', v)} />
                     </div>
                   </div>
                   <div className="mb-3">

@@ -267,6 +267,9 @@ export default function Discovery() {
             places={filtered}
             selectedPlaceId={selectedPlaceId}
             onMarkerClick={setSelectedPlaceId}
+            currentUser={user}
+            gatherings={gatherings}
+            markerMode="places"
           />
         </div>
       </div>

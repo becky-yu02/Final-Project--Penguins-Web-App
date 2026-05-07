@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Navbar from '../components/Navbar';
 import GatheringCard from '../components/GatheringCard';
 import PlaceCard from '../components/PlaceCard';
@@ -64,25 +64,6 @@ export default function Home() {
     ).then(results => setFriendsData(results.filter(Boolean)));
   }, [friendIdsKey, token]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const friendMarkers = useMemo(() => {
-    const markers = [];
-    for (const friend of friendsData) {
-      if (!friend.online_status?.broadcasting || !friend.online_status?.current_gathering_id) continue;
-      const gid = friend.online_status.current_gathering_id;
-      const gathering = gatherings.find(g => g._id === gid || g.id === gid);
-      if (!gathering) continue;
-      const place = places.find(p => p.id === gathering.place_id);
-      if (!place?.coordinates) continue;
-      markers.push({
-        userId: friend.id ?? friend._id,
-        name: `${friend.first_name} ${friend.last_name}`,
-        username: friend.username,
-        imageUrl: friend.profile_image_url ?? null,
-        position: place.coordinates,
-      });
-    }
-    return markers;
-  }, [friendsData, gatherings, places]);
 
   const active = gatherings.filter(g => g.status === 'active');
   const scheduled = gatherings.filter(g => g.status === 'scheduled');
@@ -111,13 +92,14 @@ export default function Home() {
     if (view === 'gatherings') {
       const match = allGatherings.find(g => g.place_id === selectedPlaceId);
       matchId = match?._id;
+      if (matchId) setSelectedGatheringId(matchId);
     } else {
       matchId = selectedPlaceId;
     }
     if (matchId && cardRefs.current[matchId]) {
       cardRefs.current[matchId].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
-  }, [selectedPlaceId]);
+  }, [selectedPlaceId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleCancelled(updated) {
     setGatherings(prev => prev.map(g => g._id === updated._id ? { ...g, ...updated } : g));
@@ -240,7 +222,10 @@ export default function Home() {
             places={mapPlaces}
             selectedPlaceId={selectedPlaceId}
             onMarkerClick={setSelectedPlaceId}
-            friendMarkers={friendMarkers}
+            currentUser={user}
+            gatherings={gatherings}
+            friendsData={friendsData}
+            markerMode={view === 'favorites' ? 'places' : 'gatherings'}
           />
         </div>
       </div>
