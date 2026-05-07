@@ -40,6 +40,7 @@ export default function Discovery() {
   const [locationLoading, setLocationLoading] = useState(true);
   const [prefs, setPrefs] = useState({
     preferred_types: [],
+    preferred_vibes: [],
     max_distance_miles: '',
     wifi_required: false,
     outlets_required: false,
@@ -105,6 +106,15 @@ export default function Discovery() {
       preferred_types: p.preferred_types.includes(type)
         ? p.preferred_types.filter(t => t !== type)
         : [...p.preferred_types, type],
+    }));
+  }
+
+  function toggleVibe(vibe) {
+    setPrefs(p => ({
+      ...p,
+      preferred_vibes: p.preferred_vibes.includes(vibe)
+        ? p.preferred_vibes.filter(v => v !== vibe)
+        : [...p.preferred_vibes, vibe],
     }));
   }
 
@@ -309,6 +319,33 @@ export default function Discovery() {
                               borderStyle: 'solid',
                             }}
                             onClick={() => toggleType(value)}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="mb-3">
+                    <label className="form-label fw-semibold">Preferred vibes</label>
+                    <div className="d-flex gap-2 flex-wrap">
+                      {options.vibes.map(({ label, color }) => {
+                        const value = label.toLowerCase();
+                        const active = prefs.preferred_vibes.includes(value);
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            className="btn btn-sm"
+                            style={{
+                              backgroundColor: active ? color : 'transparent',
+                              borderColor: color,
+                              color: active ? '#fff' : color,
+                              borderWidth: 1,
+                              borderStyle: 'solid',
+                            }}
+                            onClick={() => toggleVibe(value)}
                           >
                             {label}
                           </button>

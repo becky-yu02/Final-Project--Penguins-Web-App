@@ -35,7 +35,8 @@ def recompute_summary(notes: list[CommunityNote], override: AmenityOverride | No
     feel_counts: dict[str, int] = {}
     for n in notes:
         for f in (n.feel or []):
-            feel_counts[f] = feel_counts.get(f, 0) + 1
+            key = f.lower()
+            feel_counts[key] = feel_counts.get(key, 0) + 1
     feels = [f for f, _ in sorted(feel_counts.items(), key=lambda x: x[1], reverse=True)][:3]
 
     return CommunitySummary(
@@ -213,6 +214,24 @@ async def upload_place_photo(
     await place.save()
     logger.info("Uploaded place photo place_id=%s actor_user_id=%s", place.id, current_user.id)
     return {"image_url": image_url, "photo_urls": place.photo_urls}
+
+
+@router.post("/{place_id}/recompute-summary")
+async def recompute_place_summary(
+    place_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Admin access required.")
+    place = await Location.get(place_id)
+    if not place:
+        raise HTTPException(status_code=404, detail="Place not found")
+
+    place.community_summary = recompute_summary(place.community_notes, place.admin_amenity_override)
+    place.updated_at = datetime.now(UTC)
+    await place.save()
+    logger.info("Recomputed community summary place_id=%s actor_user_id=%s", place.id, current_user.id)
+    return place
 
 
 @router.post("/{place_id}/notes")

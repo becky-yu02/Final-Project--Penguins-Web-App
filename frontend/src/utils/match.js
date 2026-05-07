@@ -1,6 +1,6 @@
 // Attempts to provide a match rating (0%-100%) for a given location and the user's preferences
 // Returns null if the user has no preferences set (nothing to match against).
-// Type preference is weighted 2x relative to each individual amenity requirement.
+// Type and vibe preferences are weighted 2x relative to each individual amenity requirement.
 
 export function calculateMatchRating(place, userPreferences) {
   if (!userPreferences) return null;
@@ -12,6 +12,12 @@ export function calculateMatchRating(place, userPreferences) {
   if (userPreferences.preferred_types?.length > 0) {
     totalWeight += 2;
     if (userPreferences.preferred_types.includes(place?.type_of_place)) earnedWeight += 2;
+  }
+
+  if (userPreferences.preferred_vibes?.length > 0) {
+    const placeVibes = summary?.overall_feel ?? [];
+    totalWeight += 2;
+    earnedWeight += userPreferences.preferred_vibes.filter(v => placeVibes.includes(v)).length;
   }
 
   if (userPreferences.wifi_required) {

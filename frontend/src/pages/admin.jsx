@@ -251,6 +251,8 @@ function PlaceExpandedRow({ place, token, onUpdate }) {
     const [geocoding, setGeocoding] = useState(false);
     const [geoStatus, setGeoStatus] = useState('');
     const [geoMsg, setGeoMsg] = useState('');
+    const [recomputing, setRecomputing] = useState(false);
+    const [recomputeStatus, setRecomputeStatus] = useState('');
 
     async function handleRecalculate() {
         if (!place.address) {
@@ -292,6 +294,23 @@ function PlaceExpandedRow({ place, token, onUpdate }) {
         });
     }
 
+    async function handleRecompute() {
+        setRecomputing(true);
+        setRecomputeStatus('');
+        const res = await fetch(`${API}/penguins/places/${place.id}/recompute-summary`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        setRecomputing(false);
+        if (res.ok) {
+            const updated = await res.json();
+            onUpdate({ ...place, ...updated, id: updated.id ?? updated._id?.$oid ?? updated._id });
+            setRecomputeStatus('ok');
+        } else {
+            setRecomputeStatus('error');
+        }
+    }
+
     async function deleteNote(noteId) {
         const res = await fetch(`${API}/penguins/places/${place.id}/notes/${noteId}`, {
             method: 'DELETE',
@@ -311,7 +330,7 @@ function PlaceExpandedRow({ place, token, onUpdate }) {
 
     return (
         <tr>
-            <td colSpan={6} className="p-0">
+            <td colSpan={7} className="p-0">
                 <div className="px-4 py-3" style={{ backgroundColor: '#f8f9fa' }}>
                     <div className="row g-3 mb-3">
                         <div className="col-auto">
@@ -351,8 +370,20 @@ function PlaceExpandedRow({ place, token, onUpdate }) {
                             <div className="small">{formatDt(place.updated_at)}</div>
                         </div>
                         <div className="col-auto">
-                            <span className="text-muted small fw-semibold">Community Summary</span>
-                            <div className="d-flex flex-wrap gap-2 small mt-1">
+                            <div className="d-flex align-items-center gap-2 mb-1">
+                                <span className="text-muted small fw-semibold">Community Summary</span>
+                                <button
+                                    className="btn btn-outline-secondary"
+                                    style={{ fontSize: '0.72rem', padding: '1px 8px' }}
+                                    onClick={handleRecompute}
+                                    disabled={recomputing}
+                                >
+                                    {recomputing ? '…' : '↺ Recompute'}
+                                </button>
+                                {recomputeStatus === 'ok' && <span className="small text-success">Updated</span>}
+                                {recomputeStatus === 'error' && <span className="small text-danger">Failed</span>}
+                            </div>
+                            <div className="d-flex flex-wrap gap-2 small">
                                 <span>Wi-Fi: {tri(place.community_summary?.wifi_available)}</span>
                                 <span>Outlets: {tri(place.community_summary?.outlets_available)}</span>
                                 <span>Parking: {tri(place.community_summary?.parking_available)}</span>

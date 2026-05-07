@@ -174,17 +174,18 @@ export default function AddNoteModal({ place, onClose }) {
                 </label>
                 <div className="d-flex flex-wrap gap-2">
                   {options.vibes.map(({ label, color }) => {
-                    const selected = note.feel.includes(label);
+                    const value = label.toLowerCase();
+                    const selected = note.feel.includes(value);
                     const atLimit = note.feel.length >= 3;
                     return (
                       <button
-                        key={label}
+                        key={value}
                         type="button"
                         disabled={!selected && atLimit}
                         onClick={() => setField('feel',
                           selected
-                            ? note.feel.filter(f => f !== label)
-                            : [...note.feel, label]
+                            ? note.feel.filter(f => f !== value)
+                            : [...note.feel, value]
                         )}
                         style={{
                           backgroundColor: selected ? color : 'transparent',

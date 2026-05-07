@@ -13,6 +13,7 @@ class UserPreferences(BaseModel):
     parking_required: bool = False
     food_required: bool = False
     preferred_types: List[str] = Field(default_factory=list)
+    preferred_vibes: List[str] = Field(default_factory=list)
 
 
 class OnlineStatus(BaseModel):

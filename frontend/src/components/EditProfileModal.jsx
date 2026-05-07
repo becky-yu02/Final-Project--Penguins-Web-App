@@ -9,7 +9,7 @@ export default function EditProfileModal({ onClose }) {
   const [account, setAccount] = useState({ first_name: '', last_name: '', profile_image_url: '' });
   const [preferences, setPreferences] = useState({
     wifi_required: false, outlets_required: false, parking_required: false, food_required: false,
-    max_distance_miles: '', preferred_types: [],
+    max_distance_miles: '', preferred_types: [], preferred_vibes: [],
   });
   const [status, setStatus] = useState({ is_online: false, broadcasting: false });
   const [saveStatus, setSaveStatus] = useState('');
@@ -32,6 +32,7 @@ export default function EditProfileModal({ onClose }) {
             food_required: user.preferences.food_required ?? false,
             max_distance_miles: user.preferences.max_distance_miles ?? '',
             preferred_types: user.preferences.preferred_types ?? [],
+            preferred_vibes: user.preferences.preferred_vibes ?? [],
           });
         }
         if (user.online_status) {
@@ -75,6 +76,15 @@ export default function EditProfileModal({ onClose }) {
       preferred_types: prev.preferred_types.includes(type)
         ? prev.preferred_types.filter(t => t !== type)
         : [...prev.preferred_types, type],
+    }));
+  };
+
+  const toggleVibe = (vibe) => {
+    setPreferences(prev => ({
+      ...prev,
+      preferred_vibes: prev.preferred_vibes.includes(vibe)
+        ? prev.preferred_vibes.filter(v => v !== vibe)
+        : [...prev.preferred_vibes, vibe],
     }));
   };
 
@@ -144,16 +154,48 @@ export default function EditProfileModal({ onClose }) {
                   value={preferences.max_distance_miles}
                   onChange={e => setPreferences({ ...preferences, max_distance_miles: e.target.value })} />
               </div>
-              <div className="mb-4">
+              <div className="mb-3">
                 <label className="form-label">Preferred Place Types</label>
                 <div className="d-flex gap-2 flex-wrap">
-                  {options.place_types.map(({ value, label }) => (
-                    <button key={value} type="button"
-                      className={`btn btn-sm ${preferences.preferred_types.includes(value) ? 'btn-dark' : 'btn-outline-secondary'}`}
-                      onClick={() => toggleType(value)}>
-                      {label}
-                    </button>
-                  ))}
+                  {options.place_types.map(({ value, label, color }) => {
+                    const active = preferences.preferred_types.includes(value);
+                    return (
+                      <button key={value} type="button" className="btn btn-sm"
+                        style={{
+                          backgroundColor: active ? color : 'transparent',
+                          borderColor: color,
+                          color: active ? '#fff' : color,
+                          borderWidth: 1,
+                          borderStyle: 'solid',
+                        }}
+                        onClick={() => toggleType(value)}>
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="form-label">Preferred Vibes</label>
+                <div className="d-flex gap-2 flex-wrap">
+                  {options.vibes.map(({ label, color }) => {
+                    const value = label.toLowerCase();
+                    const active = preferences.preferred_vibes.includes(value);
+                    return (
+                      <button key={value} type="button" className="btn btn-sm"
+                        style={{
+                          backgroundColor: active ? color : 'transparent',
+                          borderColor: color,
+                          color: active ? '#fff' : color,
+                          borderWidth: 1,
+                          borderStyle: 'solid',
+                        }}
+                        onClick={() => toggleVibe(value)}>
+                        {label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
