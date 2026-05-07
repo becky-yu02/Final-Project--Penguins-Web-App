@@ -1,46 +1,53 @@
 # Penguins Web App
 
-Penguins is a full-stack location-based social app for discovering places, creating gatherings, sharing community notes, managing friends, and maintaining user preferences.
+Penguins is a full-stack location-based social app for discovering useful places, creating gatherings, sharing community notes, seeing friend activity, and managing a small admin workflow for community-curated locations.
 
-The app has:
+The project includes:
 
-- a FastAPI + MongoDB backend in `backend/`
-- a React + Vite frontend in `frontend/`
-- optional mock seed data in `mock_data/`
+- a FastAPI + MongoDB API in `backend/`
+- a React + Vite client in `frontend/`
+- optional demo data and a seed script in `mock_data/`
+- backend test coverage in `backend/tests/`
 
 ## Tech Stack
 
 Backend:
 
-- Python 3.11 or newer
+- Python 3.11+
 - FastAPI
 - MongoDB
 - Beanie ODM
-- Motor
-- Pydantic v2
-- PyJWT
-- Passlib + bcrypt
+- Motor async MongoDB driver
+- Pydantic v2 and pydantic-settings
+- JWT auth with PyJWT
+- Passlib + bcrypt password hashing
 - Uvicorn
+- Pytest and HTTPX for tests
 
 Frontend:
 
 - React 19
-- React Router
-- Vite
-- Bootstrap
-- Google Maps JavaScript API integration
+- React Router 7
+- Vite 8
+- Bootstrap 5
+- vite-plugin-svgr for SVG React components
+- Google Maps JavaScript API
+- Browser geolocation for distance and map context
 
 ## Main Features
 
-- user registration and login with JWT bearer tokens
-- profile management, profile image upload, and privacy-aware user serialization
-- admin role support and bootstrap admin creation
-- place discovery with map markers, search, filters, favorites, and match scoring
-- place suggestions with admin approval
-- community notes with ratings, amenities, vibes, comments, and uploaded photos
-- gathering creation, editing, deletion, joining, and leaving
-- friend requests, pending requests, accepts, and declines
-- local image uploads served from the backend
+- register and log in with JWT bearer tokens
+- protected frontend routes and automatic logout when a saved token expires
+- user profile editing, profile image upload, favorites, preferences, online status, and gathering broadcast status
+- privacy-aware user serialization so other users only see public profile summaries
+- friend search, outgoing friend requests, incoming request accept/decline, and accepted friend lists
+- place discovery with Google Maps markers, type filters, favorites filter, match score sorting, friend-presence sorting, and walk-distance sorting
+- place suggestions that remain pending until an admin approves them
+- local image uploads for profile pictures and place photos
+- community notes with amenities, ratings, vibes, comments, optional images, and automatic community summary recomputation
+- admin amenity overrides for Wi-Fi, outlets, parking, and food availability
+- gathering creation, visibility control, status automation, joining, leaving, cancelling, deleting, and active "here now" counts
+- admin panel for approving/editing/geocoding places, reviewing/deleting notes, cancelling/deleting gatherings, and managing user roles/accounts
 - centralized backend logging
 
 ## Screenshots
@@ -69,44 +76,44 @@ Frontend:
 .
 ├── backend/
 │   ├── app/
-│   │   ├── main.py
-│   │   ├── core/
-│   │   │   ├── authz.py
-│   │   │   ├── bootstrap.py
-│   │   │   ├── config.py
-│   │   │   ├── dependencies.py
-│   │   │   ├── logging.py
-│   │   │   ├── security.py
-│   │   │   └── uploads.py
-│   │   ├── db/
-│   │   ├── models/
-│   │   ├── routers/
-│   │   └── schemas/
+│   │   ├── core/          # config, auth helpers, logging, uploads, bootstrap
+│   │   ├── db/            # MongoDB/Beanie initialization
+│   │   ├── models/        # Beanie document models
+│   │   ├── routers/       # auth, users, places, gatherings, friendships
+│   │   ├── schemas/       # request/response validation models
+│   │   └── main.py        # FastAPI app, middleware, static uploads
 │   ├── tests/
 │   ├── uploads/
-│   ├── logs/
 │   ├── .env
 │   └── requirements.txt
 ├── frontend/
-│   ├── src/
 │   ├── public/
+│   ├── src/
+│   │   ├── assets/
+│   │   ├── components/
+│   │   ├── context/
+│   │   ├── pages/
+│   │   └── utils/
+│   ├── .env
 │   ├── package.json
 │   └── vite.config.js
-└── mock_data/
+├── mock_data/
+├── pytest.ini
+└── README.md
 ```
 
 ## Environment Variables
 
-The backend loads environment variables from `backend/.env`.
+The backend settings read `.env` from the process working directory. The easiest local workflow is to run the API from `backend/` and keep the backend environment file at `backend/.env`.
 
-Create `backend/.env`:
+Create or update `backend/.env`:
 
 ```env
 MONGODB_URL=mongodb://127.0.0.1:27017
 MONGODB_DB_NAME=penguins_db
 JWT_SECRET_KEY=replace_this_with_a_long_random_secret
 JWT_ALGORITHM=HS256
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES=180
 ```
 
 Optional bootstrap admin variables:
@@ -119,13 +126,15 @@ BOOTSTRAP_ADMIN_FIRST_NAME=Admin
 BOOTSTRAP_ADMIN_LAST_NAME=User
 ```
 
-If all bootstrap admin values are provided, startup will create that user or promote the existing matching username to admin.
+If `BOOTSTRAP_ADMIN_USERNAME` is set, startup checks for that username. If the user exists, they are promoted to admin. If the user does not exist, the other bootstrap fields are required so the app can create the admin account.
 
-The frontend reads the Google Maps API key from Vite environment variables. Create `frontend/.env` if map features need Google Maps:
+The frontend reads the Google Maps API key through Vite. Create or update `frontend/.env`:
 
 ```env
 VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 ```
+
+Several frontend files currently call the API at `http://127.0.0.1:8000`, so run the backend on that host and port for local development.
 
 ## Local Setup
 
@@ -148,12 +157,6 @@ Install backend dependencies:
 pip install -r backend/requirements.txt
 ```
 
-If password hashing fails with a bcrypt/passlib error, make sure the pinned bcrypt version is installed:
-
-```bash
-pip install bcrypt==4.0.1
-```
-
 Install frontend dependencies:
 
 ```bash
@@ -164,11 +167,12 @@ cd ..
 
 ## Running The App
 
-Terminal 1, from the project root:
+Terminal 1:
 
 ```bash
-source venv/bin/activate
-uvicorn app.main:app --reload --app-dir backend
+cd backend
+source ../venv/bin/activate
+uvicorn app.main:app --reload
 ```
 
 The backend runs at:
@@ -182,6 +186,7 @@ Useful backend pages:
 - API root: `http://127.0.0.1:8000/`
 - Swagger UI: `http://127.0.0.1:8000/docs`
 - ReDoc: `http://127.0.0.1:8000/redoc`
+- Static uploads: `http://127.0.0.1:8000/uploads/...`
 
 Terminal 2:
 
@@ -196,33 +201,79 @@ The frontend usually runs at:
 http://localhost:5173
 ```
 
-## Uploads
+## Frontend Routes
 
-The backend accepts image uploads and stores them locally under `backend/uploads/`.
+- `/login` - registration and login
+- `/home` - active/upcoming gatherings, cancelled gatherings relevant to the user, favorite places, and map context
+- `/discovery` - searchable/filterable place discovery, match scoring, friend presence, walk distance, favorites, and place suggestions
+- `/gatherings` - create gatherings, browse visible gatherings, join/leave, cancel hosted gatherings, and broadcast "here now"
+- `/profile` - profile details, edit profile modal, friends, incoming requests, friend search, favorites, and hosted gatherings
+- `/settings` - older protected settings page that remains routable
+- `/admin` - admin-only places, gatherings, and users management
 
-Supported image types:
+## Backend API
 
-- JPEG
-- PNG
-- GIF
-- WebP
+All application API routes are prefixed with `/penguins`.
 
-Maximum file size:
+Auth:
 
-- 5 MB
+- `POST /penguins/auth/register`
+- `POST /penguins/auth/login`
 
-Uploaded files are served from:
+Users:
 
-```text
-http://127.0.0.1:8000/uploads/...
-```
-
-Upload endpoints:
-
+- `GET /penguins/users` - admin only
+- `GET /penguins/users/search?q=alice`
+- `GET /penguins/users/me`
+- `PUT /penguins/users/me`
 - `POST /penguins/users/me/profile-picture`
-- `POST /penguins/places/{place_id}/photos`
+- `DELETE /penguins/users/me`
+- `GET /penguins/users/{user_id}`
+- `PUT /penguins/users/{user_id}` - self or admin
+- `DELETE /penguins/users/{user_id}` - admin only
+- `PUT /penguins/users/{user_id}/access` - admin only
+- `POST /penguins/users/me/favorites/{place_id}`
+- `DELETE /penguins/users/me/favorites/{place_id}`
 
-Both endpoints require authentication and expect multipart form data with a `file` field.
+Places:
+
+- `POST /penguins/places`
+- `GET /penguins/places`
+- `GET /penguins/places/search?q=coffee`
+- `GET /penguins/places/{place_id}`
+- `PUT /penguins/places/{place_id}`
+- `POST /penguins/places/{place_id}/photos`
+- `POST /penguins/places/{place_id}/recompute-summary` - admin only
+- `POST /penguins/places/{place_id}/notes`
+- `GET /penguins/places/{place_id}/notes/{note_id}`
+- `PUT /penguins/places/{place_id}/notes/{note_id}` - note owner or admin
+- `DELETE /penguins/places/{place_id}/notes/{note_id}` - note owner or admin
+- `PUT /penguins/places/{place_id}/amenities` - admin only
+- `DELETE /penguins/places/{place_id}/amenities` - admin only
+
+Gatherings:
+
+- `POST /penguins/gatherings`
+- `GET /penguins/gatherings`
+- `GET /penguins/gatherings/search?q=study`
+- `GET /penguins/gatherings/active`
+- `GET /penguins/gatherings/{gathering_id}`
+- `PUT /penguins/gatherings/{gathering_id}` - host only
+- `DELETE /penguins/gatherings/{gathering_id}` - host or admin
+- `POST /penguins/gatherings/{gathering_id}/join`
+- `POST /penguins/gatherings/{gathering_id}/leave`
+
+Friendships:
+
+- `POST /penguins/friendships/request`
+- `GET /penguins/friendships`
+- `GET /penguins/friendships/pending`
+- `POST /penguins/friendships/{friendship_id}/accept`
+- `POST /penguins/friendships/{friendship_id}/decline`
+
+Static files:
+
+- `GET /uploads/{path}`
 
 ## Authentication Flow
 
@@ -270,144 +321,51 @@ Use the token on protected requests:
 Authorization: Bearer <access_token>
 ```
 
-## API Routes
+## Data Model Overview
 
-Auth:
+User documents store login identity, role, profile details, profile image URL, favorite place IDs, friend IDs, preference filters, online status, and timestamps.
 
-- `POST /penguins/auth/register`
-- `POST /penguins/auth/login`
+Location documents store name, address, place type, optional coordinates, photo URLs, community notes, computed community summaries, optional admin amenity overrides, approval status, and timestamps.
 
-Users:
+Community notes are embedded in locations and store author ID, amenity opinions, rating, vibes, comment, optional image URL, and creation time.
 
-- `GET /penguins/users` - admin only
-- `GET /penguins/users/search?q=alice`
-- `GET /penguins/users/me`
-- `PUT /penguins/users/me`
+Gathering documents store host user ID, place ID, start/end times, title, description, visibility, status, participants, optional image URL, and timestamps. Status can be `scheduled`, `active`, `ended`, or `cancelled`; visibility can be `public`, `friends`, or `private`.
+
+Friendship documents store requester, receiver, status, request/response times, and timestamps. Status can be `pending`, `accepted`, or `declined`.
+
+## Uploads
+
+The backend accepts image uploads and stores them locally under `backend/uploads/`.
+
+Supported image types:
+
+- JPEG
+- PNG
+- GIF
+- WebP
+
+Maximum file size:
+
+- 5 MB
+
+Upload endpoints:
+
 - `POST /penguins/users/me/profile-picture`
-- `DELETE /penguins/users/me`
-- `GET /penguins/users/{user_id}`
-- `PUT /penguins/users/{user_id}` - self or admin
-- `DELETE /penguins/users/{user_id}` - admin only
-- `PUT /penguins/users/{user_id}/access` - admin only
-- `POST /penguins/users/me/favorites/{place_id}`
-- `DELETE /penguins/users/me/favorites/{place_id}`
-
-Places:
-
-- `POST /penguins/places`
-- `GET /penguins/places`
-- `GET /penguins/places/search?q=coffee`
-- `GET /penguins/places/{place_id}`
-- `PUT /penguins/places/{place_id}`
 - `POST /penguins/places/{place_id}/photos`
-- `POST /penguins/places/{place_id}/notes`
-- `GET /penguins/places/{place_id}/notes/{note_id}`
-- `PUT /penguins/places/{place_id}/notes/{note_id}`
-- `DELETE /penguins/places/{place_id}/notes/{note_id}`
 
-Gatherings:
+Both endpoints require authentication and expect multipart form data with a `file` field.
 
-- `POST /penguins/gatherings`
-- `GET /penguins/gatherings`
-- `GET /penguins/gatherings/search?q=study`
-- `GET /penguins/gatherings/active`
-- `GET /penguins/gatherings/{gathering_id}`
-- `PUT /penguins/gatherings/{gathering_id}` - host only
-- `DELETE /penguins/gatherings/{gathering_id}` - host only
-- `POST /penguins/gatherings/{gathering_id}/join`
-- `POST /penguins/gatherings/{gathering_id}/leave`
+## Mock Data
 
-Friendships:
+`mock_data/` contains deprecated demo fixtures plus `seed.py`. The seed script is the recommended path if demo data is needed because it hashes demo user passwords correctly.
 
-- `POST /penguins/friendships/request`
-- `GET /penguins/friendships`
-- `GET /penguins/friendships/pending`
-- `POST /penguins/friendships/{friendship_id}/accept`
-- `POST /penguins/friendships/{friendship_id}/decline`
+From `mock_data/`, with backend dependencies installed:
 
-Static files:
+```bash
+MONGODB_URL="your_connection_string" MONGODB_DB_NAME="your_db_name" python seed.py
+```
 
-- `GET /uploads/{path}`
-
-## Data Models
-
-User:
-
-- `username`
-- `email`
-- `hashed_password`
-- `role`
-- `first_name`
-- `last_name`
-- `profile_image_url`
-- `favorite_places`
-- `friend_ids`
-- `preferences`
-- `online_status`
-- `created_at`
-- `updated_at`
-
-Location:
-
-- `name`
-- `address`
-- `type_of_place`
-- `coordinates`
-- `photo_urls`
-- `community_notes`
-- `community_summary`
-- `admin_approved`
-- `created_at`
-- `updated_at`
-
-Community note:
-
-- `note_id`
-- `user_id`
-- `wifi_available`
-- `outlets_available`
-- `parking_available`
-- `food_available`
-- `rating`
-- `feel`
-- `comment`
-- `image_url`
-- `created_at`
-
-Gathering:
-
-- `host_user_id`
-- `place_id`
-- `datetime_start`
-- `datetime_end`
-- `title`
-- `description`
-- `visibility`
-- `status`
-- `participant_user_ids`
-- `image_url`
-- `created_at`
-- `updated_at`
-
-Friendship:
-
-- `requester_id`
-- `receiver_id`
-- `status`
-- `datetime_requested`
-- `datetime_responded`
-- `created_at`
-- `updated_at`
-
-## Frontend Pages
-
-- `/login` - register and login
-- `/home` - favorite places and gathering activity
-- `/discovery` - search/filter places, view map, suggest places
-- `/gatherings` - create, edit, join, leave, and delete gatherings
-- `/profile` - profile, friends, favorites, hosted gatherings, profile editing
-- `/settings` - older direct settings page, still routable but not linked in the main navigation
-- `/admin` - admin-only management for places, gatherings, and users
+The script clears and re-inserts demo `users`, `locations`, and `gatherings` collections. Demo accounts use the password `password`.
 
 ## Logging
 
@@ -419,7 +377,7 @@ Logs are written to:
 backend/logs/penguins.log
 ```
 
-When the server is launched from another working directory, a `logs/penguins.log` folder may also appear relative to that working directory.
+Request middleware logs request start/completion, warnings for 4xx responses, errors for 5xx responses, and critical details for unhandled exceptions.
 
 ## Testing And Verification
 
@@ -435,10 +393,11 @@ Backend tests:
 venv/bin/python -m pytest backend/tests -q
 ```
 
-If that command reports `No module named pytest`, install the backend requirements into the active virtual environment:
+Frontend lint:
 
 ```bash
-pip install -r backend/requirements.txt
+cd frontend
+npm run lint
 ```
 
 Frontend build:
