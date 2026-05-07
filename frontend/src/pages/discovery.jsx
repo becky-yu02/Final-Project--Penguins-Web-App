@@ -33,7 +33,7 @@ export default function Discovery() {
   const [selectedPlaceId, setSelectedPlaceId] = useState(null);
   const [showPrefsModal, setShowPrefsModal] = useState(false);
   const [showSuggestModal, setShowSuggestModal] = useState(false);
-  const [userId, setUserId] = useState(null);
+
   const [places, setPlaces] = useState([]);
   const [gatherings, setGatherings] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
@@ -45,6 +45,7 @@ export default function Discovery() {
     wifi_required: false,
     outlets_required: false,
     parking_required: false,
+    food_required: false,
   });
   const cardRefs = useRef({});
 
@@ -71,9 +72,7 @@ export default function Discovery() {
     })
       .then(r => r.json())
       .then(user => {
-        setUserId(user.id);
-        const alreadySeen = localStorage.getItem(`prefs_modal_seen_${user.id}`);
-        if (!alreadySeen && hasNoPreferences(user.preferences)) {
+if (hasNoPreferences(user.preferences)) {
           setShowPrefsModal(true);
         }
       })
@@ -81,7 +80,6 @@ export default function Discovery() {
   }, [token]);
 
   function dismissModal() {
-    if (userId) localStorage.setItem(`prefs_modal_seen_${userId}`, '1');
     setShowPrefsModal(false);
   }
 
@@ -369,7 +367,7 @@ export default function Discovery() {
                   <div className="mb-1">
                     <label className="form-label fw-semibold">Amenities</label>
                   </div>
-                  {[['wifi_required', 'Wi-Fi'], ['outlets_required', 'Outlets'], ['parking_required', 'Parking']].map(([key, label]) => (
+                  {[['wifi_required', 'Wi-Fi'], ['outlets_required', 'Outlets'], ['parking_required', 'Parking'], ['food_required', 'Food']].map(([key, label]) => (
                     <div className="form-check mb-2" key={key}>
                       <input
                         className="form-check-input"
