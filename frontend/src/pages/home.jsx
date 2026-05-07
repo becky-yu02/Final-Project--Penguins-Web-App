@@ -75,7 +75,7 @@ export default function Home() {
   );
 
   const placesWithGatherings = places.filter(p =>
-    gatherings.some(g => g.place_id === p.id)
+    gatherings.some(g => g.place_id === p.id && (g.status === 'active' || g.status === 'scheduled'))
   );
 
   const mapPlaces = view === 'favorites' ? favoritePlaces : placesWithGatherings;
