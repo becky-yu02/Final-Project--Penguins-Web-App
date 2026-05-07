@@ -29,6 +29,7 @@ export default function Discovery() {
   const [search, setSearch] = useState('');
   const [selectedType, setSelectedType] = useState('');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [sortBy, setSortBy] = useState('match');
   const [selectedPlaceId, setSelectedPlaceId] = useState(null);
   const [showPrefsModal, setShowPrefsModal] = useState(false);
   const [showSuggestModal, setShowSuggestModal] = useState(false);
@@ -50,6 +51,7 @@ export default function Discovery() {
     navigator.geolocation.getCurrentPosition(
       pos => { setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setLocationLoading(false); },
       () => setLocationLoading(false),
+      { maximumAge: 300000, timeout: 8000, enableHighAccuracy: false },
     );
     fetch(`${API}/penguins/places`)
       .then(r => r.json())
@@ -106,6 +108,25 @@ export default function Discovery() {
     }));
   }
 
+  function friendsHereCount(place) {
+    const ids = new Set(
+      gatherings
+        .filter(g => g.place_id === place.id && g.status === 'active')
+        .flatMap(g => g.participant_user_ids ?? [])
+    );
+    return (user?.friend_ids ?? []).filter(id => ids.has(id)).length;
+  }
+
+  function distanceKm(place) {
+    if (!userLocation || !place.coordinates) return Infinity;
+    const R = 6371;
+    const dLat = (place.coordinates.lat - userLocation.lat) * Math.PI / 180;
+    const dLng = (place.coordinates.lng - userLocation.lng) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2
+      + Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(place.coordinates.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
   const filtered = places
     .filter(p => {
       const matchSearch =
@@ -116,6 +137,8 @@ export default function Discovery() {
       return matchSearch && matchType && matchFavorites;
     })
     .sort((a, b) => {
+      if (sortBy === 'friends') return friendsHereCount(b) - friendsHereCount(a);
+      if (sortBy === 'distance') return distanceKm(a) - distanceKm(b);
       const rA = calculateMatchRating(a, user?.preferences) ?? -1;
       const rB = calculateMatchRating(b, user?.preferences) ?? -1;
       return rB - rA;
@@ -200,6 +223,23 @@ export default function Discovery() {
             >
               <StarIcon width={14} height={14} style={{ verticalAlign: '-1px' }} /> Favorites
             </button>
+          </div>
+
+          <div className="mb-4 d-flex gap-2 align-items-center">
+            <span className="small text-muted me-1">Sort by:</span>
+            {[
+              { key: 'match', label: 'Match %' },
+              { key: 'friends', label: 'Friends Here' },
+              { key: 'distance', label: 'Walk Distance' },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                className={`btn btn-sm ${sortBy === key ? 'btn-dark' : 'btn-outline-secondary'}`}
+                onClick={() => setSortBy(key)}
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
           {filtered.length === 0 ? (

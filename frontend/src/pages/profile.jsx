@@ -294,7 +294,7 @@ export default function Profile() {
                 <div className="row row-cols-2 row-cols-md-4 g-3">
                   {friends.map(friend => (
                     <div className="col" key={friend.id}>
-                      <ProfileCard user={friend} />
+                      <ProfileCard user={friend} gatherings={allGatherings} />
                     </div>
                   ))}
                 </div>

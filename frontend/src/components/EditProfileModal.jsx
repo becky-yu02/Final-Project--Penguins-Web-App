@@ -178,7 +178,7 @@ export default function EditProfileModal({ onClose }) {
             <div className="modal-footer">
               <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
               <button type="button" className="btn btn-primary" onClick={handleSave} disabled={saveStatus === 'saving'}>
-                {saveStatus === 'saving' ? 'Savingâ€¦' : 'Save Changes'}
+                {saveStatus === 'saving' ? 'Saving…' : 'Save Changes'}
               </button>
             </div>
           </div>

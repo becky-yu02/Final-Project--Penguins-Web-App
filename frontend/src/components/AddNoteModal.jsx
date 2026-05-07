@@ -1,9 +1,56 @@
-﻿import { useState } from 'react';
+﻿import { useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import options from '../utils/options.json';
 import StarIcon from '../assets/star.svg?react';
 
 const API = 'http://127.0.0.1:8000';
+const STAR_SIZE = 36;
+
+function StarRating({ value, onChange }) {
+  const [hovered, setHovered] = useState(null);
+  const display = hovered ?? value;
+  const clear = useCallback(() => setHovered(null), []);
+
+  return (
+    <div className="d-flex gap-1" onMouseLeave={clear}>
+      {[1, 2, 3, 4, 5].map(star => {
+        const full = display >= star;
+        const half = !full && display >= star - 0.5;
+        return (
+          <div key={star} style={{ position: 'relative', width: STAR_SIZE, height: STAR_SIZE, flexShrink: 0 }}>
+            <StarIcon width={STAR_SIZE} height={STAR_SIZE} style={{ color: '#dee2e6', display: 'block' }} />
+            {(full || half) && (
+              <StarIcon
+                width={STAR_SIZE}
+                height={STAR_SIZE}
+                style={{
+                  color: '#ffc107',
+                  position: 'absolute',
+                  top: 0, left: 0,
+                  clipPath: half ? 'inset(0 50% 0 0)' : 'none',
+                }}
+              />
+            )}
+            <button
+              type="button"
+              aria-label={`${star - 0.5} stars`}
+              onMouseEnter={() => setHovered(star - 0.5)}
+              onClick={() => onChange(value === star - 0.5 ? null : star - 0.5)}
+              style={{ position: 'absolute', top: 0, left: 0, width: '50%', height: '100%', opacity: 0, cursor: 'pointer' }}
+            />
+            <button
+              type="button"
+              aria-label={`${star} stars`}
+              onMouseEnter={() => setHovered(star)}
+              onClick={() => onChange(value === star ? null : star)}
+              style={{ position: 'absolute', top: 0, right: 0, width: '50%', height: '100%', opacity: 0, cursor: 'pointer' }}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 function AmenityToggle({ label, value, onToggle }) {
   return (
@@ -90,7 +137,7 @@ export default function AddNoteModal({ place, onClose }) {
         <div className="modal-dialog">
           <div className="modal-content">
             <div className="modal-header">
-              <h5 className="modal-title">Add Note â€” {place.name}</h5>
+              <h5 className="modal-title">Add Note — {place.name}</h5>
               <button type="button" className="btn-close" onClick={onClose} />
             </div>
             <div className="modal-body">
@@ -102,21 +149,10 @@ export default function AddNoteModal({ place, onClose }) {
 
               <hr />
               <div className="mb-3">
-                <label className="form-label">Rating</label>
-                <div className="d-flex gap-1">
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <button
-                      key={star}
-                      type="button"
-                      className="btn btn-link p-0 lh-1"
-                      style={{ color: note.rating >= star ? '#ffc107' : '#dee2e6' }}
-                      onClick={() => setField('rating', note.rating === star ? null : star)}
-                      aria-label={`${star} star${star !== 1 ? 's' : ''}`}
-                    >
-                      <StarIcon width={20} height={20} />
-                    </button>
-                  ))}
-                </div>
+                <label className="form-label">
+                  Rating{note.rating != null && <span className="text-muted fw-normal ms-2">{note.rating} / 5</span>}
+                </label>
+                <StarRating value={note.rating} onChange={v => setField('rating', v)} />
               </div>
               <div className="mb-3">
                 <label className="form-label">
@@ -157,10 +193,14 @@ export default function AddNoteModal({ place, onClose }) {
                 <textarea
                   className="form-control"
                   rows={3}
-                  placeholder="Share your experienceâ€¦"
+                  placeholder="Share your experience"
+                  maxLength={200}
                   value={note.comment}
                   onChange={e => setField('comment', e.target.value)}
                 />
+                <div className={`text-end small mt-1 ${note.comment.length >= 200 ? 'text-danger' : 'text-muted'}`}>
+                  {note.comment.length}/200
+                </div>
               </div>
               <div className="mb-2">
                 <label className="form-label">
@@ -169,7 +209,7 @@ export default function AddNoteModal({ place, onClose }) {
                 <input
                   type="url"
                   className="form-control"
-                  placeholder="https://â€¦"
+                  placeholder="https://..."
                   value={note.image_url}
                   onChange={e => setField('image_url', e.target.value)}
                 />
@@ -190,7 +230,7 @@ export default function AddNoteModal({ place, onClose }) {
                 onClick={handleSubmit}
                 disabled={saveStatus === 'saving' || note.feel.length === 0}
               >
-                {saveStatus === 'saving' ? 'Submittingâ€¦' : 'Submit Note'}
+                {saveStatus === 'saving' ? 'Submitting…' : 'Submit Note'}
               </button>
             </div>
           </div>

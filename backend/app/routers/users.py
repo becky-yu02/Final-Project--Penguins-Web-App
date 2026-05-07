@@ -150,8 +150,17 @@ async def update_me(
             GatheringStatus.ENDED,
             GatheringStatus.CANCELLED,
         ):
-            participants = gathering.participant_user_ids or []
-            if not participants:
+            user_id = str(current_user.id)
+            if user_id in (gathering.participant_user_ids or []):
+                gathering.participant_user_ids.remove(user_id)
+                gathering.updated_at = datetime.now(UTC)
+                await gathering.save()
+                logger.info(
+                    "Removed participant on broadcast stop gathering_id=%s user_id=%s",
+                    prev_gathering_id,
+                    current_user.id,
+                )
+            if not (gathering.participant_user_ids or []):
                 gathering.status = GatheringStatus.ENDED
                 gathering.updated_at = datetime.now(UTC)
                 await gathering.save()

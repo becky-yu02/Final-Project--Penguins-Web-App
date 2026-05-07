@@ -219,7 +219,7 @@ export default function Settings() {
         {saveStatus === 'error' && <div className="alert alert-danger py-2 mb-3">Failed to save. Please try again.</div>}
 
         <button type="button" className="btn btn-primary w-100" onClick={handleSave} disabled={saveStatus === 'saving'}>
-          {saveStatus === 'saving' ? 'Savingâ€¦' : 'Save Changes'}
+          {saveStatus === 'saving' ? 'Saving…' : 'Save Changes'}
         </button>
       </div>
     </>

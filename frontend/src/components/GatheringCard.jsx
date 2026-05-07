@@ -38,6 +38,7 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
   const [participantDetails, setParticipantDetails] = useState([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [isGoing, setIsGoing] = useState(false);
+  const [participantCount, setParticipantCount] = useState(gathering.participant_user_ids?.length ?? 0);
   const [joining, setJoining] = useState(false);
   const [expandHeight, setExpandHeight] = useState(0);
 
@@ -52,6 +53,11 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
 
   const friendIds = user?.friend_ids ?? [];
   const friendsGoingCount = (gathering.participant_user_ids ?? []).filter(id => friendIds.includes(id)).length;
+  const gatheringId = gathering._id ?? gathering.id;
+  function isHereNow(u) {
+    return u?.online_status?.broadcasting === true &&
+      u?.online_status?.current_gathering_id === gatheringId;
+  }
 
   useEffect(() => {
     if (!highlighted || !token) {
@@ -76,7 +82,8 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
     ]).then(([organizerData, participantResults]) => {
       if (cancelled) return;
       if (organizerData) setOrganizer(organizerData);
-      setParticipantDetails(participantResults.filter(Boolean));
+      const validParticipants = participantResults.filter(Boolean);
+      setParticipantDetails(validParticipants);
       setLoadingDetails(false);
     });
 
@@ -117,6 +124,7 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
       });
       if (res.ok) {
         setIsGoing(true);
+        setParticipantCount(c => c + 1);
         if (user && !participantDetails.some(p => p.id === user.id)) {
           setParticipantDetails(prev => [...prev, user]);
         }
@@ -136,6 +144,7 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
       });
       if (res.ok) {
         setIsGoing(false);
+        setParticipantCount(c => c - 1);
         setParticipantDetails(prev => prev.filter(p => p.id !== user.id));
       }
     } finally {
@@ -151,10 +160,13 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
       <div className="card-body">
         <div className="d-flex justify-content-between align-items-start mb-1">
           <h5 className="card-title mb-0">{gathering.title}</h5>
-          <div className="d-flex gap-1 align-items-center">
+          <div className="d-flex gap-1 align-items-center flex-wrap justify-content-end">
             <span className={`badge ${STATUS_BADGE[gathering.status]} text-capitalize`}>
               {gathering.status}
             </span>
+            {(isGoing || isHost) && (gathering.status === 'scheduled' || gathering.status === 'active') && (
+              <span className="badge bg-success">You're going</span>
+            )}
           </div>
         </div>
         <div className="d-flex align-items-center gap-2 mb-2">
@@ -173,7 +185,7 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
           {resolvedSummary && <AmenitiesRow summary={resolvedSummary} iconSize={16} />}
         </div>
         {gathering.description && (
-          <p className="card-text small mb-2" style={{ overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+          <p className="card-text small mb-2" style={highlighted ? {} : { overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
             {gathering.description}
           </p>
         )}
@@ -198,16 +210,22 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
           ) : (
             <>
               {organizer && (
-                <p className="small mb-2">
-                  <span className="fw-semibold">Organizer:</span>{' '}
-                  {organizer.first_name} {organizer.last_name}{' '}
+                <p className="small mb-2 d-flex align-items-center gap-1 flex-wrap">
+                  <span className="fw-semibold">Organizer:</span>
+                  <span>{organizer.first_name} {organizer.last_name}</span>
                   <span className="text-muted">@{organizer.username}</span>
+                  {organizer.id === user?.id && (
+                    <span className="badge bg-primary text-white" style={{ fontSize: '0.7em' }}>You</span>
+                  )}
+                  {isHereNow(organizer) && (
+                    <span className="badge bg-success text-white" style={{ fontSize: '0.7em' }}>Here Now</span>
+                  )}
                 </p>
               )}
 
               {participantDetails.length > 0 && (
                 <div className="mb-2">
-                  <p className="small fw-semibold mb-1">Going</p>
+                  <p className="small fw-semibold mb-1">Going:</p>
                   {participantDetails.map(u => {
                     const isFriend = friendIds.includes(u.id);
                     return (
@@ -218,8 +236,14 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
                           </>
                         )}
                         <span className="text-muted">@{u.username}</span>
+                        {u.id === user?.id && (
+                          <span className="badge bg-primary text-white" style={{ fontSize: '0.7em' }}>You</span>
+                        )}
                         {isFriend && (
                           <span className="badge bg-success" style={{ fontSize: '0.7em' }}>Friend</span>
+                        )}
+                        {isHereNow(u) && (
+                          <span className="badge bg-success text-white" style={{ fontSize: '0.7em' }}>Here Now</span>
                         )}
                       </p>
                     );
@@ -284,8 +308,9 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
 
       <div className="card-footer d-flex justify-content-between align-items-center">
         <span className="small text-muted">
-          {gathering.participant_user_ids?.length ?? 0} going
+          {participantCount + 1} going
           {friendsGoingCount > 0 && ` (${friendsGoingCount} friend${friendsGoingCount === 1 ? '' : 's'})`}
+          {(gathering.here_now_count > 0) && ` · ${gathering.here_now_count} here now`}
         </span>
         <span className={`badge ${VISIBILITY_BADGE[gathering.visibility]} text-capitalize`}>
           {gathering.visibility}

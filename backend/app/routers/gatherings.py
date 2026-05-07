@@ -142,7 +142,7 @@ async def create_gathering(
         description=payload.description,
         visibility=payload.visibility,
         image_url=payload.image_url,
-        participant_user_ids=[str(current_user.id)],
+        participant_user_ids=[],
     )
     await gathering.insert()
     logger.info(
@@ -157,8 +157,22 @@ async def create_gathering(
 async def list_gatherings():
     gatherings = await Gathering.find_all().to_list()
     gatherings = [await auto_update_status(g) for g in gatherings]
+
+    broadcasting_users = await User.find({"online_status.broadcasting": True}).to_list()
+    here_now_map: dict[str, int] = {}
+    for u in broadcasting_users:
+        gid = u.online_status.current_gathering_id
+        if gid:
+            here_now_map[gid] = here_now_map.get(gid, 0) + 1
+
+    result = []
+    for g in gatherings:
+        g_dict = g.model_dump(by_alias=True, mode="json")
+        g_dict["here_now_count"] = here_now_map.get(str(g.id), 0)
+        result.append(g_dict)
+
     logger.info("Listed gatherings count=%s", len(gatherings))
-    return gatherings
+    return result
 
 
 @router.get("/search")

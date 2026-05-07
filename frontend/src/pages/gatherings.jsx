@@ -16,40 +16,22 @@ const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
   return { value, display };
 });
 
-const CENTRAL_TZ = 'America/Chicago';
-
-function getCentralOffsetStr(refDate) {
-  const tzPart = new Intl.DateTimeFormat('en-US', {
-    timeZone: CENTRAL_TZ,
-    timeZoneName: 'shortOffset',
-  }).formatToParts(refDate).find(p => p.type === 'timeZoneName')?.value ?? 'GMT-5';
-  const hours = parseInt(tzPart.replace('GMT', '')) || -5;
-  return `${hours <= 0 ? '-' : '+'}${String(Math.abs(hours)).padStart(2, '0')}:00`;
-}
-
 function toISO(date, time) {
   if (!date) return null;
-  const timeStr = time || '00:00';
-  const [y, m, d] = date.split('-').map(Number);
-  const offsetStr = getCentralOffsetStr(new Date(Date.UTC(y, m - 1, d, 12, 0)));
-  return new Date(`${date}T${timeStr}:00${offsetStr}`).toISOString();
+  return new Date(`${date}T${time || '00:00'}`).toISOString();
 }
 
 function fromISO(isoStr) {
   if (!isoStr) return { date: '', time: '09:00' };
-  const parts = Object.fromEntries(
-    new Intl.DateTimeFormat('en-US', {
-      timeZone: CENTRAL_TZ,
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', hour12: false,
-    }).formatToParts(new Date(isoStr)).map(({ type, value }) => [type, value])
-  );
-  const h = parts.hour === '24' ? 0 : +parts.hour;
-  const slot = Math.round((h * 60 + +parts.minute) / 30) * 30;
+  const d = new Date(isoStr);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const slot = Math.round((d.getHours() * 60 + d.getMinutes()) / 30) * 30;
   const rh = Math.floor(slot / 60) % 24;
   const rm = slot % 60;
   return {
-    date: `${parts.year}-${parts.month}-${parts.day}`,
+    date: `${year}-${month}-${day}`,
     time: `${String(rh).padStart(2, '0')}:${String(rm).padStart(2, '0')}`,
   };
 }
@@ -453,6 +435,9 @@ export default function Gatherings() {
   const active = gatherings.filter(g => g.status === 'active' && g.host_user_id !== user?.id && isCurrentOrUpcoming(g));
   const scheduled = gatherings.filter(g => g.status === 'scheduled' && g.host_user_id !== user?.id && isCurrentOrUpcoming(g));
   const cancelledForMe = gatherings.filter(g => g.status === 'cancelled' && (g.participant_user_ids ?? []).includes(user?.id));
+  const pastGatherings = gatherings
+    .filter(g => g.status === 'ended' && (g.host_user_id === user?.id || (g.participant_user_ids ?? []).includes(user?.id)))
+    .sort((a, b) => new Date(b.datetime_start) - new Date(a.datetime_start));
 
   function handleCreated(newGathering) {
     setGatherings(prev => [newGathering, ...prev]);
@@ -546,6 +531,15 @@ export default function Gatherings() {
             </div>
           </div>
         </div>
+
+        {pastGatherings.length > 0 && (
+          <section className="mt-2">
+            <h5 className="mb-3">Past Gatherings</h5>
+            <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3 align-items-start">
+              {renderGatherings(pastGatherings)}
+            </div>
+          </section>
+        )}
       </div>
 
       {showCreate && (

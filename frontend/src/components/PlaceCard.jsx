@@ -60,6 +60,8 @@ export default function PlaceCard({ place, gatherings = [], highlighted = false,
   const isFavorited = user?.favorite_places?.includes(place.id) ?? false;
   const [heartHovered, setHeartHovered] = useState(false);
   const [friendDetails, setFriendDetails] = useState([]);
+  const [noteAuthors, setNoteAuthors] = useState({});
+  const [noteAuthorsLoaded, setNoteAuthorsLoaded] = useState(false);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [expandHeight, setExpandHeight] = useState(0);
   const expandRef = useRef(null);
@@ -90,7 +92,7 @@ export default function PlaceCard({ place, gatherings = [], highlighted = false,
   useLayoutEffect(() => {
     if (!expandRef.current) return;
     setExpandHeight(highlighted ? expandRef.current.scrollHeight : 0);
-  }, [highlighted, friendDetails, relevantGatherings.length]);
+  }, [highlighted, friendDetails, relevantGatherings.length, noteAuthors]);
 
   // Friends whose IDs appear in active gathering participant lists at this place
   const activeParticipantIds = new Set(
@@ -118,11 +120,35 @@ export default function PlaceCard({ place, gatherings = [], highlighted = false,
     return () => { cancelled = true; };
   }, [highlighted]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (!highlighted || !token) { setNoteAuthors({}); setNoteAuthorsLoaded(false); return; }
+    const uniqueIds = [...new Set((place.community_notes ?? []).map(n => n.user_id))];
+    if (uniqueIds.length === 0) { setNoteAuthorsLoaded(true); return; }
+    let cancelled = false;
+    Promise.all(
+      uniqueIds.map(id =>
+        fetch(`${API}/penguins/users/${id}`, { headers: { Authorization: `Bearer ${token}` } })
+          .then(r => r.ok ? r.json() : null)
+      )
+    ).then(results => {
+      if (cancelled) return;
+      const map = {};
+      results.filter(Boolean).forEach(u => { map[u.id] = u; });
+      setNoteAuthors(map);
+      setNoteAuthorsLoaded(true);
+    });
+    return () => { cancelled = true; };
+  }, [highlighted]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const rating = place.community_summary?.overall_rating;
   const vibes = Array.isArray(place.community_summary?.overall_feel)
     ? place.community_summary.overall_feel
     : (place.community_summary?.overall_feel ? [place.community_summary.overall_feel] : []);
   const vibeColorMap = Object.fromEntries(options.vibes.map(v => [v.label.toLowerCase(), v.color]));
+  const placeTypeColor = options.place_types.find(pt => pt.value === place.type_of_place)?.color ?? null;
+  const cardBg = placeTypeColor
+    ? `linear-gradient(to top, ${placeTypeColor}40 0%, transparent 60%)`
+    : undefined;
 
   let walkMins = null;
   if (userLocation && place.coordinates) {
@@ -131,7 +157,7 @@ export default function PlaceCard({ place, gatherings = [], highlighted = false,
   }
 
   return (
-    <div className={`card${highlighted ? ' border-primary border-2 shadow-sm' : ''}`}>
+    <div className={`card${highlighted ? ' border-primary border-2 shadow-sm' : ''}`} style={{ background: cardBg }}>
       <div className="card-body pb-2">
         {/* Row 1: Heart + Name left, match % + rating right */}
         <div className="d-flex justify-content-between align-items-center mb-1">
@@ -248,8 +274,8 @@ export default function PlaceCard({ place, gatherings = [], highlighted = false,
                   </div>
                   <p className="small text-muted mb-0">
                     {formatDate(g.datetime_start)}
-                    {g.datetime_end && ` â€“ ${formatDate(g.datetime_end)}`}
-                    {' Â· '}{g.participant_user_ids?.length ?? 0} going
+                    {g.datetime_end && ` – ${formatDate(g.datetime_end)}`}
+                    {' · '}{g.participant_user_ids?.length ?? 0} going
                   </p>
                 </div>
               ))}
@@ -260,9 +286,41 @@ export default function PlaceCard({ place, gatherings = [], highlighted = false,
             <p className="small text-muted mb-0">No friends here and no upcoming gatherings.</p>
           )}
 
+          {(() => {
+            const notesWithContent = (place.community_notes ?? []).filter(n => (n.comment || n.rating != null) && noteAuthors[n.user_id]);
+            return (
+              <div className="mt-2">
+                <p className="small fw-semibold mb-1">Community Notes</p>
+                {!noteAuthorsLoaded ? (
+                  <div className="d-flex justify-content-center py-2">
+                    <LoadingIcon width={32} height={32} className="text-muted" />
+                  </div>
+                ) : notesWithContent.length === 0 ? (
+                  <p className="small text-muted mb-0">This location has no community notes. Add one!</p>
+                ) : (
+                  <div style={{ maxHeight: 180, overflowY: 'auto' }} className="d-flex flex-column gap-2">
+                    {notesWithContent.map(n => (
+                      <div key={n.note_id} className="border rounded p-2 small">
+                        <div className="d-flex justify-content-between align-items-center mb-1">
+                          <span className="fw-medium text-muted">@{noteAuthors[n.user_id].username}</span>
+                          {n.rating != null && (
+                            <span className="d-flex align-items-center gap-1 text-nowrap">
+                              {n.rating} <StarIcon width={12} height={12} style={{ verticalAlign: '-1px' }} />
+                            </span>
+                          )}
+                        </div>
+                        {n.comment && <p className="mb-0">{n.comment}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {user && (
             <button
-              className="btn btn-sm btn-outline-secondary mt-3"
+              className="btn btn-sm btn-dark mt-3"
               onClick={e => { e.stopPropagation(); setShowNoteModal(true); }}
             >
               Add Community Note

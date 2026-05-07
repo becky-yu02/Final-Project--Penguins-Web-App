@@ -129,14 +129,15 @@ export default function BroadcastModal({ onConfirm, onClose }) {
         }
         const created = await res.json();
         window.dispatchEvent(new CustomEvent('gathering-created'));
-        onConfirm(created.id);
+        onConfirm(created.id, form.title);
       } catch {
         setError('Failed to create gathering.');
         setCreating(false);
       }
     } else {
       if (!selectedGatheringId) return;
-      onConfirm(selectedGatheringId);
+      const title = activeGatherings.find(g => (g._id ?? g.id) === selectedGatheringId)?.title ?? '';
+      onConfirm(selectedGatheringId, title);
     }
   }
 

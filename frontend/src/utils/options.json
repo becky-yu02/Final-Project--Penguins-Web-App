@@ -26,7 +26,7 @@
     },
     {
       "label": "Quiet",
-      "color": "#7f8c8d"
+      "color": "#5b9bd5"
     },
     {
       "label": "Energetic",
@@ -79,6 +79,14 @@
     {
       "label": "Intimate",
       "color": "#922b21"
+    },
+    {
+      "label": "Charming",
+      "color": "#f48fb1"
+    },
+    {
+      "label": "Busy",
+      "color": "#f57c00"
     }
   ],
   "place_types": [
@@ -115,7 +123,7 @@
     {
       "value": "park",
       "label": "Park",
-      "color": "#2e7d32"
+      "color": "#66bb6a"
     },
     {
       "value": "other",
