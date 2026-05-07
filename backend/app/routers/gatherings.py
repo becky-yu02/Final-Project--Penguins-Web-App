@@ -159,18 +159,21 @@ async def list_gatherings(current_user: User = Depends(get_current_user)):
     gatherings = [await auto_update_status(g) for g in gatherings]
 
     user_id = str(current_user.id)
-    friend_ids = set(current_user.friend_ids or [])
 
-    visible = []
-    for g in gatherings:
-        if g.host_user_id == user_id:
-            visible.append(g)
-        elif g.visibility == "public":
-            visible.append(g)
-        elif g.visibility == "friends" and g.host_user_id in friend_ids:
-            visible.append(g)
-        elif g.visibility == "private" and user_id in (g.participant_user_ids or []):
-            visible.append(g)
+    if current_user.role == "admin":
+        visible = gatherings
+    else:
+        friend_ids = set(current_user.friend_ids or [])
+        visible = []
+        for g in gatherings:
+            if g.host_user_id == user_id:
+                visible.append(g)
+            elif g.visibility == "public":
+                visible.append(g)
+            elif g.visibility == "friends" and g.host_user_id in friend_ids:
+                visible.append(g)
+            elif g.visibility == "private" and user_id in (g.participant_user_ids or []):
+                visible.append(g)
 
     broadcasting_users = await User.find({"online_status.broadcasting": True}).to_list()
     here_now_map: dict[str, int] = {}
