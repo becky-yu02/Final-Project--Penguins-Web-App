@@ -10,6 +10,7 @@ from app.core.uploads import save_image_upload
 from app.models.location import Location
 from app.models.user import User, UserRole
 from app.schemas.user import UserUpdateRequest, UserAccessUpdate
+from app.models.gathering import Gathering, GatheringStatus
 
 router = APIRouter(prefix="/users", tags=["users"])
 logger = logging.getLogger(__name__)
