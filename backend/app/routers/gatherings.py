@@ -357,14 +357,15 @@ async def leave_gathering(
     if user_id in gathering.participant_user_ids:
         gathering.participant_user_ids.remove(user_id)
         gathering.updated_at = datetime.now(UTC)
-        if not gathering.participant_user_ids:  # If no participants left
-            await gathering.delete()
-            logger.warning(
-                "Gathering deleted after final participant left gathering_id=%s actor_user_id=%s",
+        if not gathering.participant_user_ids and gathering.status == GatheringStatus.ACTIVE:
+            gathering.status = GatheringStatus.ENDED
+            await gathering.save()
+            await clear_broadcasting_for_gathering(str(gathering.id))
+            logger.info(
+                "Gathering auto-ended after final participant left gathering_id=%s actor_user_id=%s",
                 gathering.id,
                 current_user.id,
             )
-            return {"message": "Left gathering and gathering deleted (no participants)"}
         else:
             await gathering.save()
             logger.info(

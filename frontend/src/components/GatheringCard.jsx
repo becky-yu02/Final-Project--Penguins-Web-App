@@ -34,6 +34,24 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
   const { token } = useAuth();
   const resolvedSummary = place?.community_summary ?? placeSummary;
   const expandRef = useRef(null);
+  const titleRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const el = titleRef.current;
+    if (!el) return;
+    function fit() {
+      el.style.fontSize = '';
+      let size = parseFloat(getComputedStyle(el).fontSize);
+      while (el.scrollWidth > el.offsetWidth && size > 10) {
+        size -= 0.5;
+        el.style.fontSize = `${size}px`;
+      }
+    }
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [gathering.title]);
 
   const [organizer, setOrganizer] = useState(null);
   const [participantDetails, setParticipantDetails] = useState([]);
@@ -165,13 +183,13 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
     <div className={`card h-100${highlighted ? ' border-primary border-2 shadow-sm' : ''}`} style={{ background: cardBg }}>
       <div className="card-body">
         <div className="d-flex justify-content-between align-items-start mb-1">
-          <h5 className="card-title mb-0">{gathering.title}</h5>
+          <h5 ref={titleRef} className="card-title mb-0" style={{ whiteSpace: 'nowrap', minWidth: 0, flex: 1 }}>{gathering.title}</h5>
           <div className="d-flex gap-1 align-items-center flex-wrap justify-content-end">
             <span className={`badge ${STATUS_BADGE[gathering.status]} text-capitalize`}>
               {gathering.status}
             </span>
             {(isGoing || isHost) && (gathering.status === 'scheduled' || gathering.status === 'active') && (
-              <span className="badge bg-success">You're going</span>
+              <span className="badge bg-success">Going</span>
             )}
           </div>
         </div>
