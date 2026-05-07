@@ -1,9 +1,56 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import options from '../utils/options.json';
 import StarIcon from '../assets/star.svg?react';
 
 const API = 'http://127.0.0.1:8000';
+const STAR_SIZE = 36;
+
+function StarRating({ value, onChange }) {
+  const [hovered, setHovered] = useState(null);
+  const display = hovered ?? value;
+  const clear = useCallback(() => setHovered(null), []);
+
+  return (
+    <div className="d-flex gap-1" onMouseLeave={clear}>
+      {[1, 2, 3, 4, 5].map(star => {
+        const full = display >= star;
+        const half = !full && display >= star - 0.5;
+        return (
+          <div key={star} style={{ position: 'relative', width: STAR_SIZE, height: STAR_SIZE, flexShrink: 0 }}>
+            <StarIcon width={STAR_SIZE} height={STAR_SIZE} style={{ color: '#dee2e6', display: 'block' }} />
+            {(full || half) && (
+              <StarIcon
+                width={STAR_SIZE}
+                height={STAR_SIZE}
+                style={{
+                  color: '#ffc107',
+                  position: 'absolute',
+                  top: 0, left: 0,
+                  clipPath: half ? 'inset(0 50% 0 0)' : 'none',
+                }}
+              />
+            )}
+            <button
+              type="button"
+              aria-label={`${star - 0.5} stars`}
+              onMouseEnter={() => setHovered(star - 0.5)}
+              onClick={() => onChange(value === star - 0.5 ? null : star - 0.5)}
+              style={{ position: 'absolute', top: 0, left: 0, width: '50%', height: '100%', opacity: 0, cursor: 'pointer' }}
+            />
+            <button
+              type="button"
+              aria-label={`${star} stars`}
+              onMouseEnter={() => setHovered(star)}
+              onClick={() => onChange(value === star ? null : star)}
+              style={{ position: 'absolute', top: 0, right: 0, width: '50%', height: '100%', opacity: 0, cursor: 'pointer' }}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 function AmenityToggle({ label, value, onToggle }) {
   return (
@@ -40,8 +87,8 @@ export default function SuggestPlaceModal({ onClose, initialCoordinates = null }
     rating: null,
     feel: [],
     comment: '',
-    image_url: '',
   });
+  const [photoFile, setPhotoFile] = useState(null);
   const [saving, setSaving] = useState(false);
 
   function setFormField(field, value) {
@@ -126,6 +173,17 @@ export default function SuggestPlaceModal({ onClose, initialCoordinates = null }
       }
 
       const { id } = await placeRes.json();
+
+      if (photoFile) {
+        const formData = new FormData();
+        formData.append('file', photoFile);
+        await fetch(`${API}/penguins/places/${id}/photos`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+      }
+
       const noteRes = await fetch(`${API}/penguins/places/${id}/notes`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -137,7 +195,6 @@ export default function SuggestPlaceModal({ onClose, initialCoordinates = null }
           rating: note.rating,
           feel: note.feel.length > 0 ? note.feel : null,
           comment: note.comment.trim(),
-          image_url: note.image_url || null,
         }),
       });
       if (noteRes.ok) {
@@ -198,12 +255,12 @@ export default function SuggestPlaceModal({ onClose, initialCoordinates = null }
                   {coordError && <span className="small text-warning">{coordError}</span>}
                   <button
                     type="button"
-                    className="btn btn-outline-secondary btn-sm ms-auto"
+                    className="btn btn-outline-primary btn-sm flex-shrink-0 ms-auto"
                     onClick={useGeolocation}
                     disabled={geolocating}
                     title="Use my current location instead"
                   >
-                    {geolocating ? 'Locating…' : "I'm here"}
+                    {geolocating ? 'Locating…' : '📍'}
                   </button>
                 </div>
               </div>
@@ -230,19 +287,10 @@ export default function SuggestPlaceModal({ onClose, initialCoordinates = null }
               <AmenityToggle label="Food" value={note.food_available} onToggle={v => setNoteField('food_available', v)} />
 
               <div className="mb-3 mt-2">
-                <label className="form-label fw-semibold">Rating</label>
-                <div className="d-flex gap-1">
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <button
-                      key={star}
-                      type="button"
-                      className="btn btn-link p-0 lh-1"
-                      style={{ color: note.rating >= star ? '#ffc107' : '#dee2e6' }}
-                      onClick={() => setNoteField('rating', note.rating === star ? null : star)}
-                      aria-label={`${star} star${star !== 1 ? 's' : ''}`}
-                    ><StarIcon width={20} height={20} /></button>
-                  ))}
-                </div>
+                <label className="form-label fw-semibold">
+                  Rating{note.rating != null && <span className="text-muted fw-normal ms-2">{note.rating} / 5</span>}
+                </label>
+                <StarRating value={note.rating} onChange={v => setNoteField('rating', v)} />
               </div>
 
               <div className="mb-3">
@@ -283,22 +331,33 @@ export default function SuggestPlaceModal({ onClose, initialCoordinates = null }
                   className="form-control"
                   rows={3}
                   placeholder="Share what makes this spot worth visiting"
+                  maxLength={200}
                   value={note.comment}
                   onChange={e => setNoteField('comment', e.target.value)}
                 />
+                <div className={`text-end small mt-1 ${note.comment.length >= 200 ? 'text-danger' : 'text-muted'}`}>
+                  {note.comment.length}/200
+                </div>
               </div>
 
               <div className="mb-2">
                 <label className="form-label fw-semibold">
-                  Image URL <span className="text-muted fw-normal">(optional)</span>
+                  Photo <span className="text-muted fw-normal">(optional)</span>
                 </label>
                 <input
-                  type="url"
+                  type="file"
                   className="form-control"
-                  placeholder="https://example.com/image.jpg"
-                  value={note.image_url}
-                  onChange={e => setNoteField('image_url', e.target.value)}
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  onChange={e => setPhotoFile(e.target.files[0] ?? null)}
                 />
+                {photoFile && (
+                  <img
+                    src={URL.createObjectURL(photoFile)}
+                    alt="preview"
+                    className="mt-2 rounded"
+                    style={{ maxHeight: 120, maxWidth: '100%', objectFit: 'cover' }}
+                  />
+                )}
               </div>
 
             </div>

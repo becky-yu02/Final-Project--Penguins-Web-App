@@ -57,14 +57,14 @@ function PlaceSearch({ places, value, onChange }) {
 
   const filtered = query
     ? places.filter(p =>
-        p.name.toLowerCase().includes(query.toLowerCase()) ||
-        (p.address ?? '').toLowerCase().includes(query.toLowerCase())
-      )
+      p.name.toLowerCase().includes(query.toLowerCase()) ||
+      (p.address ?? '').toLowerCase().includes(query.toLowerCase())
+    )
     : [...places].sort((a, b) => {
-        const aFav = favorites.includes(a.id) ? 0 : 1;
-        const bFav = favorites.includes(b.id) ? 0 : 1;
-        return aFav - bFav;
-      });
+      const aFav = favorites.includes(a.id) ? 0 : 1;
+      const bFav = favorites.includes(b.id) ? 0 : 1;
+      return aFav - bFav;
+    });
 
   return (
     <div className="position-relative flex-grow-1">
@@ -287,7 +287,7 @@ export default function BroadcastModal({ onConfirm, onClose }) {
                       />
                       <button
                         type="button"
-                        className="btn btn-outline-secondary btn-sm flex-shrink-0"
+                        className="btn btn-outline-primary btn-sm flex-shrink-0"
                         onClick={handleLocate}
                         disabled={locating}
                         title="Detect my current location"

@@ -1,6 +1,7 @@
 import { Link, NavLink } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useRefreshUser } from '../context/UserContext';
 import BroadcastModal from './BroadcastModal';
 import BroadcastIcon from '../assets/broadcast.svg?react';
 import NotifIcon from '../assets/notif.svg?react';
@@ -9,6 +10,7 @@ const API = 'http://127.0.0.1:8000';
 
 export default function Navbar() {
   const { token, logout } = useAuth();
+  const refreshUser = useRefreshUser();
   const [isOnline, setIsOnline] = useState(false);
   const [broadcasting, setBroadcasting] = useState(false);
   const [broadcastingTitle, setBroadcastingTitle] = useState('');
@@ -79,6 +81,7 @@ export default function Navbar() {
           setBroadcasting(false);
           setBroadcastingTitle('');
           window.dispatchEvent(new CustomEvent('gathering-created'));
+          refreshUser();
         }
       });
     }
@@ -95,6 +98,7 @@ export default function Navbar() {
       setBroadcasting(true);
       setBroadcastingTitle(gatheringTitle ?? '');
       setShowBroadcastModal(false);
+      refreshUser();
     }
   }
 

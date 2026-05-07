@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 
-const UserContext = createContext({ user: null, toggleFavorite: null });
+const UserContext = createContext({ user: null, toggleFavorite: null, refreshUser: null });
 const API = 'http://127.0.0.1:8000';
 
 export function UserProvider({ children }) {
@@ -18,6 +18,13 @@ export function UserProvider({ children }) {
       .then(data => { if (data) setUser(data); })
       .catch(() => {});
   }, [token]);
+
+  async function refreshUser() {
+    if (!token) return;
+    const r = await fetch(`${API}/penguins/users/me`, { headers: { Authorization: `Bearer ${token}` } });
+    if (r.status === 401) { logout(); return; }
+    if (r.ok) setUser(await r.json());
+  }
 
   async function toggleFavorite(placeId) {
     if (!user || !token) return;
@@ -50,7 +57,7 @@ export function UserProvider({ children }) {
   }
 
   return (
-    <UserContext.Provider value={{ user, toggleFavorite }}>
+    <UserContext.Provider value={{ user, toggleFavorite, refreshUser }}>
       {children}
     </UserContext.Provider>
   );
@@ -62,4 +69,8 @@ export function useUser() {
 
 export function useToggleFavorite() {
   return useContext(UserContext).toggleFavorite;
+}
+
+export function useRefreshUser() {
+  return useContext(UserContext).refreshUser;
 }

@@ -132,11 +132,15 @@ async def update_me(
     current_user: User = Depends(get_current_user),
 ):
     prev_gathering_id = None
+    next_gathering_id = None
     update_data = payload.model_dump(exclude_unset=True)
-    if "online_status" in update_data and current_user.online_status.broadcasting:
+    if "online_status" in update_data:
         new_status = payload.online_status
-        if new_status and not new_status.broadcasting:
-            prev_gathering_id = current_user.online_status.current_gathering_id
+        if new_status:
+            if current_user.online_status.broadcasting and not new_status.broadcasting:
+                prev_gathering_id = current_user.online_status.current_gathering_id
+            if not current_user.online_status.broadcasting and new_status.broadcasting:
+                next_gathering_id = new_status.current_gathering_id
 
     updated_fields = apply_user_updates(current_user, payload)
     current_user.updated_at = datetime.now(UTC)
@@ -146,6 +150,23 @@ async def update_me(
         current_user.id,
         updated_fields,
     )
+
+    if next_gathering_id:
+        gathering = await Gathering.get(next_gathering_id)
+        if gathering and gathering.status not in (
+            GatheringStatus.ENDED,
+            GatheringStatus.CANCELLED,
+        ):
+            user_id = str(current_user.id)
+            if user_id not in (gathering.participant_user_ids or []):
+                gathering.participant_user_ids.append(user_id)
+                gathering.updated_at = datetime.now(UTC)
+                await gathering.save()
+                logger.info(
+                    "Added participant on broadcast start gathering_id=%s user_id=%s",
+                    next_gathering_id,
+                    current_user.id,
+                )
 
     if prev_gathering_id:
         gathering = await Gathering.get(prev_gathering_id)
@@ -164,14 +185,22 @@ async def update_me(
                     current_user.id,
                 )
             if not (gathering.participant_user_ids or []):
-                gathering.status = GatheringStatus.ENDED
-                gathering.updated_at = datetime.now(UTC)
-                await gathering.save()
-                logger.info(
-                    "Ended gathering with no remaining participants gathering_id=%s user_id=%s",
-                    prev_gathering_id,
-                    current_user.id,
+                host = await User.get(gathering.host_user_id)
+                host_still_broadcasting = (
+                    host is not None
+                    and host.online_status is not None
+                    and host.online_status.broadcasting
+                    and host.online_status.current_gathering_id == str(gathering.id)
                 )
+                if not host_still_broadcasting:
+                    gathering.status = GatheringStatus.ENDED
+                    gathering.updated_at = datetime.now(UTC)
+                    await gathering.save()
+                    logger.info(
+                        "Ended gathering with no remaining participants gathering_id=%s user_id=%s",
+                        prev_gathering_id,
+                        current_user.id,
+                    )
 
     return to_user_private(current_user)
 
