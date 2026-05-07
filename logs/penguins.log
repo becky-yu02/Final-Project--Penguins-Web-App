@@ -1,0 +1,93 @@
+2026-05-06 17:14:04,353 - app.main - INFO - Request started: method=POST path=/penguins/gatherings client=testclient
+2026-05-06 17:14:04,357 - app.main - WARN - Request completed: method=POST path=/penguins/gatherings status=422 client=testclient
+2026-05-06 17:14:04,359 - httpx - INFO - HTTP Request: POST http://testserver/penguins/gatherings "HTTP/1.1 422 Unprocessable Entity"
+2026-05-06 17:14:04,397 - app.main - INFO - Request started: method=POST path=/penguins/gatherings client=testclient
+2026-05-06 17:14:04,400 - app.routers.gatherings - WARN - Gathering creation rejected because place was not found place_id=missing host_user_id=penguin-123
+2026-05-06 17:14:04,400 - app.main - WARN - Request completed: method=POST path=/penguins/gatherings status=404 client=testclient
+2026-05-06 17:14:04,401 - httpx - INFO - HTTP Request: POST http://testserver/penguins/gatherings "HTTP/1.1 404 Not Found"
+2026-05-06 17:14:04,417 - app.main - INFO - Request started: method=POST path=/penguins/gatherings client=testclient
+2026-05-06 17:14:04,420 - app.routers.gatherings - INFO - Created gathering gathering_id=mock-id host_user_id=penguin-123
+2026-05-06 17:14:04,420 - app.main - INFO - Request completed: method=POST path=/penguins/gatherings status=200 client=testclient
+2026-05-06 17:14:04,422 - httpx - INFO - HTTP Request: POST http://testserver/penguins/gatherings "HTTP/1.1 200 OK"
+2026-05-06 17:14:04,434 - app.main - INFO - Request started: method=GET path=/penguins/users/me client=testclient
+2026-05-06 17:14:04,437 - app.routers.users - INFO - Fetched current user profile user_id=user-123
+2026-05-06 17:14:04,437 - app.main - INFO - Request completed: method=GET path=/penguins/users/me status=200 client=testclient
+2026-05-06 17:14:04,439 - httpx - INFO - HTTP Request: GET http://testserver/penguins/users/me "HTTP/1.1 200 OK"
+2026-05-06 17:14:04,450 - app.main - INFO - Request started: method=GET path=/penguins/users/user-456 client=testclient
+2026-05-06 17:14:04,452 - app.routers.users - INFO - Fetched user profile requested_user_id=user-456 actor_user_id=user-123 visibility=summary
+2026-05-06 17:14:04,453 - app.main - INFO - Request completed: method=GET path=/penguins/users/user-456 status=200 client=testclient
+2026-05-06 17:14:04,455 - httpx - INFO - HTTP Request: GET http://testserver/penguins/users/user-456 "HTTP/1.1 200 OK"
+2026-05-06 17:14:04,462 - app.main - INFO - Request started: method=PUT path=/penguins/users/me client=testclient
+2026-05-06 17:14:04,467 - app.routers.users - INFO - Updated current user profile user_id=user-123 fields=['first_name']
+2026-05-06 17:14:04,468 - app.main - INFO - Request completed: method=PUT path=/penguins/users/me status=200 client=testclient
+2026-05-06 17:14:04,469 - httpx - INFO - HTTP Request: PUT http://testserver/penguins/users/me "HTTP/1.1 200 OK"
+2026-05-06 17:14:04,474 - app.core.dependencies - WARN - Unauthorized note modification attempt place_id=place-1 note_id=note-1 actor_user_id=viewer-1
+2026-05-06 17:14:04,486 - app.core.dependencies - WARN - Access token decoding failed
+2026-05-06 17:14:04,497 - app.core.authz - WARN - Admin authorization failed user_id=user-1 role=UserRole.BASIC
+2026-05-06 17:14:04,511 - app.routers.gatherings - WARN - Unauthorized gathering update attempt gathering_id=gathering-1 actor_user_id=not-host
+2026-05-06 17:14:04,523 - app.routers.users - INFO - Updated current user profile user_id=user-1 fields=['first_name']
+2026-05-06 17:14:04,550 - app.routers.auth - WARN - Failed login attempt for username=ghost
+2026-05-06 17:14:04,563 - app.routers.auth - WARN - Failed login attempt for username=testuser
+2026-05-06 17:14:04,573 - app.routers.auth - INFO - User logged in successfully user_id=user-123 username=testuser
+2026-05-06 17:14:22,859 - app.main - INFO - Request started: method=POST path=/penguins/gatherings client=testclient
+2026-05-06 17:14:22,862 - app.main - WARN - Request completed: method=POST path=/penguins/gatherings status=422 client=testclient
+2026-05-06 17:14:22,864 - httpx - INFO - HTTP Request: POST http://testserver/penguins/gatherings "HTTP/1.1 422 Unprocessable Entity"
+2026-05-06 17:14:22,880 - app.main - INFO - Request started: method=POST path=/penguins/gatherings client=testclient
+2026-05-06 17:14:22,882 - app.routers.gatherings - WARN - Gathering creation rejected because place was not found place_id=missing host_user_id=penguin-123
+2026-05-06 17:14:22,883 - app.main - WARN - Request completed: method=POST path=/penguins/gatherings status=404 client=testclient
+2026-05-06 17:14:22,884 - httpx - INFO - HTTP Request: POST http://testserver/penguins/gatherings "HTTP/1.1 404 Not Found"
+2026-05-06 17:14:22,901 - app.main - INFO - Request started: method=POST path=/penguins/gatherings client=testclient
+2026-05-06 17:14:22,903 - app.routers.gatherings - INFO - Created gathering gathering_id=mock-id host_user_id=penguin-123
+2026-05-06 17:14:22,903 - app.main - INFO - Request completed: method=POST path=/penguins/gatherings status=200 client=testclient
+2026-05-06 17:14:22,904 - httpx - INFO - HTTP Request: POST http://testserver/penguins/gatherings "HTTP/1.1 200 OK"
+2026-05-06 17:14:22,921 - app.main - INFO - Request started: method=GET path=/penguins/users/me client=testclient
+2026-05-06 17:14:22,923 - app.routers.users - INFO - Fetched current user profile user_id=user-123
+2026-05-06 17:14:22,923 - app.main - INFO - Request completed: method=GET path=/penguins/users/me status=200 client=testclient
+2026-05-06 17:14:22,924 - httpx - INFO - HTTP Request: GET http://testserver/penguins/users/me "HTTP/1.1 200 OK"
+2026-05-06 17:14:22,932 - app.main - INFO - Request started: method=GET path=/penguins/users/user-456 client=testclient
+2026-05-06 17:14:22,935 - app.routers.users - INFO - Fetched user profile requested_user_id=user-456 actor_user_id=user-123 visibility=summary
+2026-05-06 17:14:22,935 - app.main - INFO - Request completed: method=GET path=/penguins/users/user-456 status=200 client=testclient
+2026-05-06 17:14:22,937 - httpx - INFO - HTTP Request: GET http://testserver/penguins/users/user-456 "HTTP/1.1 200 OK"
+2026-05-06 17:14:22,944 - app.main - INFO - Request started: method=PUT path=/penguins/users/me client=testclient
+2026-05-06 17:14:22,947 - app.routers.users - INFO - Updated current user profile user_id=user-123 fields=['first_name']
+2026-05-06 17:14:22,948 - app.main - INFO - Request completed: method=PUT path=/penguins/users/me status=200 client=testclient
+2026-05-06 17:14:22,949 - httpx - INFO - HTTP Request: PUT http://testserver/penguins/users/me "HTTP/1.1 200 OK"
+2026-05-06 17:14:22,955 - app.core.dependencies - WARN - Unauthorized note modification attempt place_id=place-1 note_id=note-1 actor_user_id=viewer-1
+2026-05-06 17:14:22,966 - app.core.dependencies - WARN - Access token decoding failed
+2026-05-06 17:14:22,976 - app.core.authz - WARN - Admin authorization failed user_id=user-1 role=UserRole.BASIC
+2026-05-06 17:14:22,989 - app.routers.gatherings - WARN - Unauthorized gathering update attempt gathering_id=gathering-1 actor_user_id=not-host
+2026-05-06 17:14:23,003 - app.routers.users - INFO - Updated current user profile user_id=user-1 fields=['first_name']
+2026-05-06 17:14:23,030 - app.routers.auth - WARN - Failed login attempt for username=ghost
+2026-05-06 17:14:23,044 - app.routers.auth - WARN - Failed login attempt for username=testuser
+2026-05-06 17:14:23,061 - app.routers.auth - INFO - User logged in successfully user_id=user-123 username=testuser
+2026-05-06 17:14:48,083 - app.main - INFO - Request started: method=POST path=/penguins/gatherings client=testclient
+2026-05-06 17:14:48,097 - app.main - WARN - Request completed: method=POST path=/penguins/gatherings status=422 client=testclient
+2026-05-06 17:14:48,099 - httpx - INFO - HTTP Request: POST http://testserver/penguins/gatherings "HTTP/1.1 422 Unprocessable Entity"
+2026-05-06 17:14:48,111 - app.main - INFO - Request started: method=POST path=/penguins/gatherings client=testclient
+2026-05-06 17:14:48,113 - app.routers.gatherings - WARN - Gathering creation rejected because place was not found place_id=missing host_user_id=penguin-123
+2026-05-06 17:14:48,114 - app.main - WARN - Request completed: method=POST path=/penguins/gatherings status=404 client=testclient
+2026-05-06 17:14:48,116 - httpx - INFO - HTTP Request: POST http://testserver/penguins/gatherings "HTTP/1.1 404 Not Found"
+2026-05-06 17:14:48,148 - app.main - INFO - Request started: method=POST path=/penguins/gatherings client=testclient
+2026-05-06 17:14:48,151 - app.routers.gatherings - INFO - Created gathering gathering_id=mock-id host_user_id=penguin-123
+2026-05-06 17:14:48,151 - app.main - INFO - Request completed: method=POST path=/penguins/gatherings status=200 client=testclient
+2026-05-06 17:14:48,153 - httpx - INFO - HTTP Request: POST http://testserver/penguins/gatherings "HTTP/1.1 200 OK"
+2026-05-06 17:14:48,174 - app.main - INFO - Request started: method=GET path=/penguins/users/me client=testclient
+2026-05-06 17:14:48,176 - app.routers.users - INFO - Fetched current user profile user_id=user-123
+2026-05-06 17:14:48,177 - app.main - INFO - Request completed: method=GET path=/penguins/users/me status=200 client=testclient
+2026-05-06 17:14:48,178 - httpx - INFO - HTTP Request: GET http://testserver/penguins/users/me "HTTP/1.1 200 OK"
+2026-05-06 17:14:48,206 - app.main - INFO - Request started: method=GET path=/penguins/users/user-456 client=testclient
+2026-05-06 17:14:48,207 - app.routers.users - INFO - Fetched user profile requested_user_id=user-456 actor_user_id=user-123 visibility=summary
+2026-05-06 17:14:48,208 - app.main - INFO - Request completed: method=GET path=/penguins/users/user-456 status=200 client=testclient
+2026-05-06 17:14:48,209 - httpx - INFO - HTTP Request: GET http://testserver/penguins/users/user-456 "HTTP/1.1 200 OK"
+2026-05-06 17:14:48,214 - app.main - INFO - Request started: method=PUT path=/penguins/users/me client=testclient
+2026-05-06 17:14:48,217 - app.routers.users - INFO - Updated current user profile user_id=user-123 fields=['first_name']
+2026-05-06 17:14:48,218 - app.main - INFO - Request completed: method=PUT path=/penguins/users/me status=200 client=testclient
+2026-05-06 17:14:48,219 - httpx - INFO - HTTP Request: PUT http://testserver/penguins/users/me "HTTP/1.1 200 OK"
+2026-05-06 17:14:48,225 - app.core.dependencies - WARN - Unauthorized note modification attempt place_id=place-1 note_id=note-1 actor_user_id=viewer-1
+2026-05-06 17:14:48,235 - app.core.dependencies - WARN - Access token decoding failed
+2026-05-06 17:14:48,244 - app.core.authz - WARN - Admin authorization failed user_id=user-1 role=UserRole.BASIC
+2026-05-06 17:14:48,255 - app.routers.gatherings - WARN - Unauthorized gathering update attempt gathering_id=gathering-1 actor_user_id=not-host
+2026-05-06 17:14:48,264 - app.routers.users - INFO - Updated current user profile user_id=user-1 fields=['first_name']
+2026-05-06 17:14:48,285 - app.routers.auth - WARN - Failed login attempt for username=ghost
+2026-05-06 17:14:48,295 - app.routers.auth - WARN - Failed login attempt for username=testuser
+2026-05-06 17:14:48,305 - app.routers.auth - INFO - User logged in successfully user_id=user-123 username=testuser

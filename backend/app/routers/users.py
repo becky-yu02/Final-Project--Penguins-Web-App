@@ -1,12 +1,12 @@
 import logging
 from datetime import datetime, UTC
 
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, File, HTTPException, Depends, Query, Request, UploadFile
 from starlette import status
 
 from app.core.dependencies import get_current_user
 from app.core.authz import require_admin
-from app.models.gathering import Gathering, GatheringStatus
+from app.core.uploads import save_image_upload
 from app.models.location import Location
 from app.models.user import User, UserRole
 from app.schemas.user import UserUpdateRequest, UserAccessUpdate
@@ -38,7 +38,9 @@ def to_user_private(user: User):
 
 
 def can_view_private_profile(target_user: User, actor_user: User) -> bool:
-    return str(target_user.id) == str(actor_user.id) or actor_user.role == UserRole.ADMIN
+    return (
+        str(target_user.id) == str(actor_user.id) or actor_user.role == UserRole.ADMIN
+    )
 
 
 def serialize_user_for_actor(target_user: User, actor_user: User):
@@ -103,9 +105,7 @@ async def search_users(
     }
     users = await User.find(search_filter).limit(limit).to_list()
     results = [
-        to_user_summary(user)
-        for user in users
-        if str(user.id) != str(current_user.id)
+        to_user_summary(user) for user in users if str(user.id) != str(current_user.id)
     ]
     logger.info(
         "Searched users actor_user_id=%s query=%s result_count=%s",
@@ -137,11 +137,18 @@ async def update_me(
     updated_fields = apply_user_updates(current_user, payload)
     current_user.updated_at = datetime.now(UTC)
     await current_user.save()
-    logger.info("Updated current user profile user_id=%s fields=%s", current_user.id, updated_fields)
+    logger.info(
+        "Updated current user profile user_id=%s fields=%s",
+        current_user.id,
+        updated_fields,
+    )
 
     if prev_gathering_id:
         gathering = await Gathering.get(prev_gathering_id)
-        if gathering and gathering.status not in (GatheringStatus.ENDED, GatheringStatus.CANCELLED):
+        if gathering and gathering.status not in (
+            GatheringStatus.ENDED,
+            GatheringStatus.CANCELLED,
+        ):
             participants = gathering.participant_user_ids or []
             if not participants:
                 gathering.status = GatheringStatus.ENDED
@@ -156,6 +163,21 @@ async def update_me(
     return to_user_private(current_user)
 
 
+@router.post("/me/profile-picture")
+async def upload_profile_picture(
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+):
+    image_path = await save_image_upload(file, "profiles")
+    image_url = str(request.base_url).rstrip("/") + image_path
+    current_user.profile_image_url = image_url
+    current_user.updated_at = datetime.now(UTC)
+    await current_user.save()
+    logger.info("Uploaded profile picture user_id=%s", current_user.id)
+    return {"profile_image_url": image_url, "user": to_user_private(current_user)}
+
+
 @router.delete("/me")
 async def delete_me(current_user: User = Depends(get_current_user)):
     await current_user.delete()
@@ -167,7 +189,11 @@ async def delete_me(current_user: User = Depends(get_current_user)):
 async def get_user(user_id: str, current_user: User = Depends(get_current_user)):
     user = await User.get(user_id)
     if not user:
-        logger.warning("Requested user not found requested_user_id=%s actor_user_id=%s", user_id, current_user.id)
+        logger.warning(
+            "Requested user not found requested_user_id=%s actor_user_id=%s",
+            user_id,
+            current_user.id,
+        )
         raise HTTPException(status_code=404, detail="User not found.")
     logger.info(
         "Fetched user profile requested_user_id=%s actor_user_id=%s visibility=%s",
@@ -186,20 +212,33 @@ async def update_user(
 ):
     user = await User.get(user_id)
     if not user:
-        logger.warning("Update target user not found requested_user_id=%s actor_user_id=%s", user_id, current_user.id)
+        logger.warning(
+            "Update target user not found requested_user_id=%s actor_user_id=%s",
+            user_id,
+            current_user.id,
+        )
         raise HTTPException(status_code=404, detail="User not found.")
 
     is_admin = current_user.role == UserRole.ADMIN
     is_self = str(current_user.id) == str(user.id)
 
     if not (is_admin or is_self):
-        logger.warning("Unauthorized user update attempt target_user_id=%s actor_user_id=%s", user_id, current_user.id)
+        logger.warning(
+            "Unauthorized user update attempt target_user_id=%s actor_user_id=%s",
+            user_id,
+            current_user.id,
+        )
         raise HTTPException(status_code=403, detail="Not authorized.")
 
     updated_fields = apply_user_updates(user, payload)
     user.updated_at = datetime.now(UTC)
     await user.save()
-    logger.info("Updated user target_user_id=%s actor_user_id=%s fields=%s", user.id, current_user.id, updated_fields)
+    logger.info(
+        "Updated user target_user_id=%s actor_user_id=%s fields=%s",
+        user.id,
+        current_user.id,
+        updated_fields,
+    )
     return serialize_user_for_actor(user, current_user)
 
 
@@ -210,11 +249,17 @@ async def delete_user(
 ):
     user = await User.get(user_id)
     if not user:
-        logger.warning("Delete target user not found requested_user_id=%s admin_user_id=%s", user_id, current_user.id)
+        logger.warning(
+            "Delete target user not found requested_user_id=%s admin_user_id=%s",
+            user_id,
+            current_user.id,
+        )
         raise HTTPException(status_code=404, detail="User not found.")
 
     await user.delete()
-    logger.warning("Deleted user target_user_id=%s admin_user_id=%s", user_id, current_user.id)
+    logger.warning(
+        "Deleted user target_user_id=%s admin_user_id=%s", user_id, current_user.id
+    )
     return {"message": "User deleted successfully."}
 
 
@@ -226,16 +271,25 @@ async def update_user_access(
 ):
     user = await User.get(user_id)
     if not user:
-        logger.warning("Access update target user not found requested_user_id=%s admin_user_id=%s", user_id, admin_user.id)
+        logger.warning(
+            "Access update target user not found requested_user_id=%s admin_user_id=%s",
+            user_id,
+            admin_user.id,
+        )
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found.",
-            )
-    
+        )
+
     user.role = payload.role
     user.updated_at = datetime.now(UTC)
     await user.save()
-    logger.info("Updated user access target_user_id=%s admin_user_id=%s new_role=%s", user.id, admin_user.id, user.role)
+    logger.info(
+        "Updated user access target_user_id=%s admin_user_id=%s new_role=%s",
+        user.id,
+        admin_user.id,
+        user.role,
+    )
 
     return {
         "message": "User access updated successfully.",
@@ -244,11 +298,16 @@ async def update_user_access(
         "role": user.role,
     }
 
+
 @router.post("/me/favorites/{place_id}")
 async def add_favorite(place_id: str, current_user: User = Depends(get_current_user)):
     place = await Location.get(place_id)
     if not place:
-        logger.warning("Favorite add failed because place was not found place_id=%s user_id=%s", place_id, current_user.id)
+        logger.warning(
+            "Favorite add failed because place was not found place_id=%s user_id=%s",
+            place_id,
+            current_user.id,
+        )
         raise HTTPException(status_code=404, detail="Place not found.")
 
     if place_id not in current_user.favorite_places:
@@ -257,24 +316,46 @@ async def add_favorite(place_id: str, current_user: User = Depends(get_current_u
         await current_user.save()
         logger.info("Added favorite place_id=%s user_id=%s", place_id, current_user.id)
     else:
-        logger.info("Favorite place already present place_id=%s user_id=%s", place_id, current_user.id)
+        logger.info(
+            "Favorite place already present place_id=%s user_id=%s",
+            place_id,
+            current_user.id,
+        )
 
-    return {"message": "Favorite added.", "favorite_places": current_user.favorite_places}
+    return {
+        "message": "Favorite added.",
+        "favorite_places": current_user.favorite_places,
+    }
 
 
 @router.delete("/me/favorites/{place_id}")
-async def remove_favorite(place_id: str, current_user: User = Depends(get_current_user)):
+async def remove_favorite(
+    place_id: str, current_user: User = Depends(get_current_user)
+):
     place = await Location.get(place_id)
     if not place:
-        logger.warning("Favorite remove failed because place was not found place_id=%s user_id=%s", place_id, current_user.id)
+        logger.warning(
+            "Favorite remove failed because place was not found place_id=%s user_id=%s",
+            place_id,
+            current_user.id,
+        )
         raise HTTPException(status_code=404, detail="Place not found.")
 
     if place_id in current_user.favorite_places:
         current_user.favorite_places.remove(place_id)
         current_user.updated_at = datetime.now(UTC)
         await current_user.save()
-        logger.info("Removed favorite place_id=%s user_id=%s", place_id, current_user.id)
+        logger.info(
+            "Removed favorite place_id=%s user_id=%s", place_id, current_user.id
+        )
     else:
-        logger.warning("Attempted to remove missing favorite place_id=%s user_id=%s", place_id, current_user.id)
+        logger.warning(
+            "Attempted to remove missing favorite place_id=%s user_id=%s",
+            place_id,
+            current_user.id,
+        )
 
-    return {"message": "Favorite removed.", "favorite_places": current_user.favorite_places}
+    return {
+        "message": "Favorite removed.",
+        "favorite_places": current_user.favorite_places,
+    }

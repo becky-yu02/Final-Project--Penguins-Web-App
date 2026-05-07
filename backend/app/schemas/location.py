@@ -1,5 +1,5 @@
-from typing import Optional
-from pydantic import BaseModel
+from typing import List, Optional
+from pydantic import BaseModel, Field
 
 from app.models.location import Coordinates
 
@@ -9,6 +9,7 @@ class PlaceCreateRequest(BaseModel):
     address: str
     type_of_place: str
     coordinates: Optional[Coordinates] = None
+    photo_urls: List[str] = Field(default_factory=list)
 
 
 class PlaceUpdateRequest(BaseModel):
@@ -16,6 +17,7 @@ class PlaceUpdateRequest(BaseModel):
     address: Optional[str] = None
     type_of_place: Optional[str] = None
     coordinates: Optional[Coordinates] = None
+    photo_urls: Optional[List[str]] = None
     admin_approved: Optional[bool] = None
 
 

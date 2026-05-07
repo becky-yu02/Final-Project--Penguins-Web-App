@@ -47,6 +47,7 @@ class Location(Document):
     address: str
     type_of_place: str
     coordinates: Optional[Coordinates] = None
+    photo_urls: List[str] = Field(default_factory=list)
     community_notes: List[CommunityNote] = Field(default_factory=list)
     community_summary: CommunitySummary = Field(default_factory=CommunitySummary)
     admin_amenity_override: Optional[AmenityOverride] = None
