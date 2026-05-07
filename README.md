@@ -44,17 +44,21 @@ Frontend:
 - centralized backend logging
 
 ## Screenshots
-# Home Page
+## Home Page
 <img width="1918" height="990" alt="home" src="https://github.com/user-attachments/assets/fec7ec53-93f7-459c-9a24-86bb0bc44d7a" />
 <img width="1918" height="996" alt="gatheing detail" src="https://github.com/user-attachments/assets/c90a566e-f69a-4274-a60c-ce65cf8dbbba" />
-# Discovery Page
+
+## Discovery Page
 <img width="1918" height="995" alt="discovery" src="https://github.com/user-attachments/assets/f7a97803-2d83-4da7-975b-65dbacd0c983" />
 <img width="1918" height="998" alt="place detail" src="https://github.com/user-attachments/assets/23e990b6-b6c9-43b2-bfbc-aa9b2d8a0845" />
-# Gatherings Page
+
+## Gatherings Page
 <img width="1918" height="992" alt="gatherings" src="https://github.com/user-attachments/assets/480c3c39-1efe-4703-9bd5-d6aa42965886" />
-# Profile Page
+
+## Profile Page
 <img width="1918" height="1000" alt="profile" src="https://github.com/user-attachments/assets/fd54b37b-c545-4a84-92d7-3795975d1bde" />
-# Interactive Modals
+
+## Interactive Modals
 <img width="641" height="887" alt="broadcast" src="https://github.com/user-attachments/assets/180473f6-5906-49b6-abf5-a07068718320" />
 <img width="1918" height="1001" alt="add note" src="https://github.com/user-attachments/assets/dbae5743-e9b6-4314-bbbd-8c88278e5188" />
 
