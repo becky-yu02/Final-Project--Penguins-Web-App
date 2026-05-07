@@ -244,7 +244,6 @@ function CreateGatheringModal({ places, onClose, onCreated }) {
                 >
                   <option value="public">Public</option>
                   <option value="friends">Friends only</option>
-                  <option value="private">Private</option>
                 </select>
               </div>
 
@@ -397,7 +396,6 @@ function EditGatheringModal({ gathering, onClose, onUpdated }) {
                 >
                   <option value="public">Public</option>
                   <option value="friends">Friends only</option>
-                  <option value="private">Private</option>
                 </select>
               </div>
               <div className="mb-2">
@@ -441,6 +439,7 @@ function EditGatheringModal({ gathering, onClose, onUpdated }) {
 
 export default function Gatherings() {
   const user = useUser();
+  const { token } = useAuth();
   const [gatherings, setGatherings] = useState([]);
   const [places, setPlaces] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
@@ -453,22 +452,22 @@ export default function Gatherings() {
       .then(r => r.json())
       .then(data => setPlaces(data.map(p => ({ ...p, id: p.id ?? p._id }))))
       .catch(() => {});
-    fetch(`${API}/penguins/gatherings`)
+    fetch(`${API}/penguins/gatherings`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(setGatherings)
       .catch(() => {});
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     function refetch() {
-      fetch(`${API}/penguins/gatherings`)
+      fetch(`${API}/penguins/gatherings`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json())
         .then(setGatherings)
         .catch(() => {});
     }
     window.addEventListener('gathering-created', refetch);
     return () => window.removeEventListener('gathering-created', refetch);
-  }, []);
+  }, [token]);
 
   const myGatherings = gatherings.filter(g => g.host_user_id === user?.id && (g.status === 'active' || g.status === 'scheduled') && isCurrentOrUpcoming(g));
   const active = gatherings.filter(g => g.status === 'active' && g.host_user_id !== user?.id && isCurrentOrUpcoming(g));

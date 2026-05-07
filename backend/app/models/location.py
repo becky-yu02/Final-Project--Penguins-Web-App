@@ -19,7 +19,7 @@ class CommunityNote(BaseModel):
     outlets_available: Optional[bool] = None
     parking_available: Optional[bool] = None
     food_available: Optional[bool] = None
-    rating: Optional[int] = None
+    rating: Optional[float] = None
     feel: Optional[List[str]] = None
     comment: Optional[str] = None
     image_url: Optional[str] = None

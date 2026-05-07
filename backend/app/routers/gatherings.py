@@ -154,9 +154,23 @@ async def create_gathering(
 
 
 @router.get("")
-async def list_gatherings():
+async def list_gatherings(current_user: User = Depends(get_current_user)):
     gatherings = await Gathering.find_all().to_list()
     gatherings = [await auto_update_status(g) for g in gatherings]
+
+    user_id = str(current_user.id)
+    friend_ids = set(current_user.friend_ids or [])
+
+    visible = []
+    for g in gatherings:
+        if g.host_user_id == user_id:
+            visible.append(g)
+        elif g.visibility == "public":
+            visible.append(g)
+        elif g.visibility == "friends" and g.host_user_id in friend_ids:
+            visible.append(g)
+        elif g.visibility == "private" and user_id in (g.participant_user_ids or []):
+            visible.append(g)
 
     broadcasting_users = await User.find({"online_status.broadcasting": True}).to_list()
     here_now_map: dict[str, int] = {}
@@ -166,12 +180,12 @@ async def list_gatherings():
             here_now_map[gid] = here_now_map.get(gid, 0) + 1
 
     result = []
-    for g in gatherings:
+    for g in visible:
         g_dict = g.model_dump(by_alias=True, mode="json")
         g_dict["here_now_count"] = here_now_map.get(str(g.id), 0)
         result.append(g_dict)
 
-    logger.info("Listed gatherings count=%s", len(gatherings))
+    logger.info("Listed gatherings user_id=%s count=%s", user_id, len(result))
     return result
 
 

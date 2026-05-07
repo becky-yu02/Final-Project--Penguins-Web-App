@@ -57,11 +57,11 @@ export default function Discovery() {
       .then(r => r.json())
       .then(data => setPlaces(data.map(p => ({ ...p, id: p.id ?? p._id }))))
       .catch(() => { });
-    fetch(`${API}/penguins/gatherings`)
+    fetch(`${API}/penguins/gatherings`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
-      .then(setGatherings)
+      .then(data => { if (Array.isArray(data)) setGatherings(data); })
       .catch(() => { });
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     if (!token) return;

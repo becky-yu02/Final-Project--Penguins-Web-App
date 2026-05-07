@@ -249,6 +249,22 @@ export default function PlaceCard({ place, gatherings = [], highlighted = false,
             {place.address}
           </p>
 
+          {place.photo_urls?.length > 0 && (
+            <div
+              className="d-flex gap-2 mb-2"
+              style={{ overflowX: 'auto', paddingBottom: 4 }}
+            >
+              {place.photo_urls.map((url, i) => (
+                <img
+                  key={i}
+                  src={url}
+                  alt={`${place.name} photo ${i + 1}`}
+                  style={{ height: 80, width: 80, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }}
+                />
+              ))}
+            </div>
+          )}
+
           {friendDetails.length > 0 && (
             <div className="mb-2">
               <p className="small fw-semibold mb-1">Friends here now</p>

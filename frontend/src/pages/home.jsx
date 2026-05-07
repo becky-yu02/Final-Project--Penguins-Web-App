@@ -36,7 +36,7 @@ export default function Home() {
       .then(r => r.json())
       .then(data => setPlaces(data.map(p => ({ ...p, id: p.id ?? p._id }))))
       .catch(() => { });
-    fetch(`${API}/penguins/gatherings`)
+    fetch(`${API}/penguins/gatherings`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(setGatherings)
       .catch(() => { });
@@ -44,14 +44,14 @@ export default function Home() {
 
   useEffect(() => {
     function refetch() {
-      fetch(`${API}/penguins/gatherings`)
+      fetch(`${API}/penguins/gatherings`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json())
         .then(setGatherings)
         .catch(() => { });
     }
     window.addEventListener('gathering-created', refetch);
     return () => window.removeEventListener('gathering-created', refetch);
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     const ids = user?.friend_ids ?? [];

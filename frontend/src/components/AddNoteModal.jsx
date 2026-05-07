@@ -88,8 +88,8 @@ export default function AddNoteModal({ place, onClose }) {
     rating: null,
     feel: [],
     comment: '',
-    image_url: '',
   });
+  const [photoFile, setPhotoFile] = useState(null);
   const [saveStatus, setSaveStatus] = useState('');
 
   function setField(field, value) {
@@ -98,17 +98,31 @@ export default function AddNoteModal({ place, onClose }) {
 
   async function handleSubmit() {
     setSaveStatus('saving');
-    const body = {
-      wifi_available: note.wifi_available,
-      outlets_available: note.outlets_available,
-      parking_available: note.parking_available,
-      food_available: note.food_available,
-      rating: note.rating,
-      feel: note.feel.length > 0 ? note.feel : null,
-      comment: note.comment || null,
-      image_url: note.image_url || null,
-    };
     try {
+      if (photoFile) {
+        const form = new FormData();
+        form.append('file', photoFile);
+        const photoRes = await fetch(`${API}/penguins/places/${placeId}/photos`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: form,
+        });
+        if (!photoRes.ok) {
+          setSaveStatus('error');
+          setTimeout(() => setSaveStatus(''), 3000);
+          return;
+        }
+      }
+
+      const body = {
+        wifi_available: note.wifi_available,
+        outlets_available: note.outlets_available,
+        parking_available: note.parking_available,
+        food_available: note.food_available,
+        rating: note.rating,
+        feel: note.feel.length > 0 ? note.feel : null,
+        comment: note.comment || null,
+      };
       const res = await fetch(`${API}/penguins/places/${placeId}/notes`, {
         method: 'POST',
         headers: {
@@ -204,15 +218,22 @@ export default function AddNoteModal({ place, onClose }) {
               </div>
               <div className="mb-2">
                 <label className="form-label">
-                  Image URL <span className="text-muted fw-normal">(optional)</span>
+                  Photo <span className="text-muted fw-normal">(optional)</span>
                 </label>
                 <input
-                  type="url"
+                  type="file"
                   className="form-control"
-                  placeholder="https://..."
-                  value={note.image_url}
-                  onChange={e => setField('image_url', e.target.value)}
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  onChange={e => setPhotoFile(e.target.files[0] ?? null)}
                 />
+                {photoFile && (
+                  <img
+                    src={URL.createObjectURL(photoFile)}
+                    alt="preview"
+                    className="mt-2 rounded"
+                    style={{ maxHeight: 120, maxWidth: '100%', objectFit: 'cover' }}
+                  />
+                )}
               </div>
 
               {saveStatus === 'saved' && (

@@ -2,6 +2,7 @@ import { useRef, useState, useEffect, useLayoutEffect } from 'react';
 import AmenitiesRow from './AmenitiesRow';
 import PlaceCard from './PlaceCard';
 import { useUser } from '../context/UserContext';
+import options from '../utils/options.json';
 import { useAuth } from '../context/AuthContext';
 import loadingSvg from '../assets/loading.svg';
 import InfoIcon from '../assets/info.svg?react';
@@ -96,6 +97,11 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
 
   const isHost = user?.id === gathering.host_user_id;
 
+  const placeTypeColor = options.place_types.find(pt => pt.value === place?.type_of_place)?.color ?? null;
+  const cardBg = placeTypeColor
+    ? `linear-gradient(to top, ${placeTypeColor}40 0%, transparent 60%)`
+    : undefined;
+
   async function handleCancel() {
     if (!token || cancelling) return;
     setCancelling(true);
@@ -156,7 +162,7 @@ export default function GatheringCard({ gathering, place, placeSummary, highligh
     gathering.status !== 'ended' && gathering.status !== 'cancelled';
 
   return (
-    <div className={`card h-100${highlighted ? ' border-primary border-2 shadow-sm' : ''}`}>
+    <div className={`card h-100${highlighted ? ' border-primary border-2 shadow-sm' : ''}`} style={{ background: cardBg }}>
       <div className="card-body">
         <div className="d-flex justify-content-between align-items-start mb-1">
           <h5 className="card-title mb-0">{gathering.title}</h5>

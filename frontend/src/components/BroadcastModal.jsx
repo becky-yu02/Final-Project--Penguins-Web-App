@@ -344,7 +344,6 @@ export default function BroadcastModal({ onConfirm, onClose }) {
                     >
                       <option value="public">Public</option>
                       <option value="friends">Friends only</option>
-                      <option value="private">Private</option>
                     </select>
                   </div>
                 </>
