@@ -7,7 +7,6 @@ from app.routers.auth import login
 
 class AuthRouteTests(unittest.IsolatedAsyncioTestCase):
     async def test_login_success(self):
-        # 1. Arrange
         mock_user = MagicMock()
         mock_user.id = "user-123"
         mock_user.username = "testuser"

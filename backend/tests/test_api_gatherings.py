@@ -35,12 +35,10 @@ class GatheringApiTests(unittest.IsolatedAsyncioTestCase):
         # 1. Setup location check
         mock_loc_get.return_value = MagicMock(spec=Location)
 
-        # 2. Setup the instance that 'Gathering()' will return
         mock_instance = MagicMock()
         mock_instance.id = "mock-id"
         mock_instance.insert = AsyncMock(return_value=mock_instance)
 
-        # Make the class call return instance
         mock_gathering_class.return_value = mock_instance
 
         payload = {
@@ -53,7 +51,6 @@ class GatheringApiTests(unittest.IsolatedAsyncioTestCase):
         response = client.post(f"{self.base_url}", json=payload)
 
         self.assertEqual(response.status_code, 200)
-        # Verify mock instance was actually saved
         mock_instance.insert.assert_called_once()
 
     @patch("app.models.location.Location.get", new_callable=AsyncMock)
