@@ -1,3 +1,5 @@
+# DEPRECATED !!!!! DO NOT USE. IF YOU ARE A PROFESSOR OR TA USE THE .env FILES TO CONNECT TO THE DATABASE.
+
 # Mock Data
 
 Demo data for populating the Penguins app in MongoDB. None of these documents are used by automated tests.
