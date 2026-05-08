@@ -102,104 +102,28 @@ Frontend:
 └── README.md
 ```
 
-## Environment Variables
-
-The backend settings read `.env` from the process working directory. The easiest local workflow is to run the API from `backend/` and keep the backend environment file at `backend/.env`.
-
-Create or update `backend/.env`:
-
-```env
-MONGODB_URL=mongodb://127.0.0.1:27017
-MONGODB_DB_NAME=penguins_db
-JWT_SECRET_KEY=replace_this_with_a_long_random_secret
-JWT_ALGORITHM=HS256
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES=180
-```
-
-Optional bootstrap admin variables:
-
-```env
-BOOTSTRAP_ADMIN_USERNAME=admin
-BOOTSTRAP_ADMIN_EMAIL=admin@example.com
-BOOTSTRAP_ADMIN_PASSWORD=change_this_admin_password
-BOOTSTRAP_ADMIN_FIRST_NAME=Admin
-BOOTSTRAP_ADMIN_LAST_NAME=User
-```
-
-If `BOOTSTRAP_ADMIN_USERNAME` is set, startup checks for that username. If the user exists, they are promoted to admin. If the user does not exist, the other bootstrap fields are required so the app can create the admin account.
-
-The frontend reads the Google Maps API key through Vite. Create or update `frontend/.env`:
-
-```env
-VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
-```
-
-Several frontend files currently call the API at `http://127.0.0.1:8000`, so run the backend on that host and port for local development.
-
 ## Local Setup
+### Prerequisites
+- [Python 3.11+](https://www.python.org/downloads/)
+- [Node.js 18+](https://nodejs.org/en/download) 
 
-Start MongoDB first. With Homebrew on macOS:
+#### Mac/Linux: replace `.venv\Scripts\activate` with `source .venv/bin/activate`
 
-```bash
-brew services start mongodb-community
-```
+No ```.env``` setup necessary.
 
-Create and activate the backend virtual environment from the project root:
+### Backend setup - Terminal 1
+1. ```cd backend```
+2. ```python -m venv .venv```
+3. ```.venv\Scripts\activate```
+4. ```pip install -r requirements.txt```
+5. ```uvicorn app.main:app --reload```
+### Frontend setup - Terminal 2
+1. ```cd frontend```
+2. ```npm install```
+3. ```npm run dev```
 
-```bash
-python -m venv venv
-source venv/bin/activate
-```
-
-Install backend dependencies:
-
-```bash
-pip install -r backend/requirements.txt
-```
-
-Install frontend dependencies:
-
-```bash
-cd frontend
-npm install
-cd ..
-```
-
-## Running The App
-
-Terminal 1:
-
-```bash
-cd backend
-source ../venv/bin/activate
-uvicorn app.main:app --reload
-```
-
-The backend runs at:
-
-```text
-http://127.0.0.1:8000
-```
-
-Useful backend pages:
-
-- API root: `http://127.0.0.1:8000/`
-- Swagger UI: `http://127.0.0.1:8000/docs`
-- ReDoc: `http://127.0.0.1:8000/redoc`
-- Static uploads: `http://127.0.0.1:8000/uploads/...`
-
-Terminal 2:
-
-```bash
-cd frontend
-npm run dev
-```
-
-The frontend usually runs at:
-
-```text
-http://localhost:5173
-```
+#### Site should now be active at ```http://localhost:5173```.
+##### Note to grader: Should you want to test admin features, log in with username TestAdmin and password TestAdmin.
 
 ## Frontend Routes
 
@@ -357,7 +281,7 @@ Both endpoints require authentication and expect multipart form data with a `fil
 
 ## Mock Data
 
-`mock_data/` contains deprecated demo fixtures plus `seed.py`. The seed script is the recommended path if demo data is needed because it hashes demo user passwords correctly.
+`mock_data/` contains DEPRECATED demo fixtures plus `seed.py`. It does NOT populate the database with the current versions of data models. It is only included for posterity.
 
 From `mock_data/`, with backend dependencies installed:
 
